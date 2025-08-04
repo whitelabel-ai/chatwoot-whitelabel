@@ -144,15 +144,15 @@
   display_name: Custom Roles
   enabled: false
   premium: true
-- name: chatwoot_v4
-  display_name: Chatwoot V4
+- name: Whitelabel_v4
+  display_name: Whitelabel V4
   enabled: true
 - name: report_v4
   display_name: Report V4
   enabled: true
   deprecated: true
-- name: contact_chatwoot_support_team
-  display_name: Contact Chatwoot Support Team
+- name: contact_Whitelabel_support_team
+  display_name: Contact Whitelabel Support Team
   enabled: true
   chatwoot_internal: true
 - name: shopify_integration

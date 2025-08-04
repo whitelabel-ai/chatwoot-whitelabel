@@ -843,7 +843,7 @@
         "USER_MESSAGE": "こんにちは",
         "AGENT_MESSAGE": "こんにちは"
       },
-      "BRANDING_TEXT": "提供：Chatwoot",
+      "BRANDING_TEXT": "提供：Whitelabel",
       "SCRIPT_SETTINGS": "\n      window.chatwootSettings = {options};"
     },
     "EMAIL_PROVIDERS": {
