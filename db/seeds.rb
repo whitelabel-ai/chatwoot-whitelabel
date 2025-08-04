@@ -25,7 +25,7 @@ unless Rails.env.production?
     name: 'Acme Org'
   )
 
-  user = User.new(name: 'John', email: 'john@acme.inc', password: 'Password1!', type: 'SuperAdmin')
+  user = User.new(name: 'Pedro', email: 'hola@whitelabel.lat', password: 'Gato70sopa!!', type: 'SuperAdmin')
   user.skip_confirmation!
   user.save!
 
@@ -41,9 +41,9 @@ unless Rails.env.production?
     role: :administrator
   )
 
-  web_widget = Channel::WebWidget.create!(account: account, website_url: 'https://acme.inc')
+  web_widget = Channel::WebWidget.create!(account: account, website_url: 'https://whitelabel.lat')
 
-  inbox = Inbox.create!(channel: web_widget, account: account, name: 'Acme Support')
+  inbox = Inbox.create!(channel: web_widget, account: account, name: 'Whitelabel Support')
   InboxMember.create!(user: user, inbox: inbox)
 
   contact_inbox = ContactInboxWithContactBuilder.new(
@@ -93,5 +93,5 @@ unless Rails.env.production?
   # csat
   Seeders::MessageSeeder.create_sample_csat_collect_message conversation
 
-  CannedResponse.create!(account: account, short_code: 'start', content: 'Hello welcome to chatwoot.')
+  CannedResponse.create!(account: account, short_code: 'start', content: 'Hello welcome to Whitelabel.')
 end
