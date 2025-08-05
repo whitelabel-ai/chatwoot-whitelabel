@@ -1,0 +1,66 @@
+{
+  "BILLING": {
+    "HEADER": "Billing",
+    "DESCRIPTION": "Manage your subscription, view usage, and handle payments",
+    "CURRENT_PLAN": {
+      "TITLE": "Current Plan",
+      "PLAN_NAME": "Plan Name",
+      "MONTHLY_LIMIT": "Monthly Message Limit",
+      "PRICE": "Price",
+      "RENEWAL_DATE": "Next Renewal",
+      "STATUS": "Status"
+    },
+    "USAGE": {
+      "TITLE": "Message Usage",
+      "MESSAGES_USED": "Messages Used",
+      "MESSAGES_REMAINING": "Messages Remaining",
+      "USAGE_PERCENTAGE": "Usage",
+      "RESET_DATE": "Resets on"
+    },
+    "ALERTS": {
+      "NEAR_LIMIT": "You are approaching your message limit",
+      "LIMIT_EXCEEDED": "You have exceeded your message limit",
+      "UPGRADE_REQUIRED": "Please upgrade your plan to continue sending messages"
+    },
+    "PLANS": {
+      "TITLE": "Available Plans",
+      "CURRENT": "Current Plan",
+      "UPGRADE": "Upgrade",
+      "MESSAGES_PER_MONTH": "messages/month",
+      "FREE_PLAN": "Free Plan",
+      "FEATURES": "Features"
+    },
+    "TRANSACTIONS": {
+      "TITLE": "Transaction History",
+      "DATE": "Date",
+      "AMOUNT": "Amount",
+      "STATUS": "Status",
+      "PLAN": "Plan",
+      "PAYMENT_METHOD": "Payment Method",
+      "NO_TRANSACTIONS": "No transactions found",
+      "DOWNLOAD_INVOICE": "Download Invoice"
+    },
+    "PAYMENT": {
+      "TITLE": "Make Payment",
+      "SELECT_PLAN": "Select Plan",
+      "PROCEED_TO_PAYMENT": "Proceed to Payment",
+      "PAYMENT_SUCCESS": "Payment successful! Your plan has been updated.",
+      "PAYMENT_FAILED": "Payment failed. Please try again."
+    },
+    "STATUS": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "CANCELLED": "Cancelled",
+      "PENDING": "Pending",
+      "SUCCESSFUL": "Successful",
+      "FAILED": "Failed"
+    },
+    "BUTTONS": {
+      "UPGRADE_PLAN": "Upgrade Plan",
+      "VIEW_PLANS": "View Plans",
+      "MAKE_PAYMENT": "Make Payment",
+      "DOWNLOAD_INVOICE": "Download Invoice",
+      "REFRESH": "Refresh"
+    }
+  }
+}

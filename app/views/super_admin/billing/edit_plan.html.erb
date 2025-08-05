@@ -1,0 +1,451 @@
+<% content_for :page_title do %>
+  Edit Billing Plan
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Edit Billing Plan: <%= @plan.name %></h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Plans", super_admin_billing_plans_path, class: "button secondary" %>
+        <%= link_to "View Plan Details", super_admin_billing_plan_path(@plan), class: "button secondary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="medium-8 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Plan Information</h3>
+      </div>
+      <div class="card-body">
+        <%= form_with model: @plan, url: super_admin_billing_plan_path(@plan), method: :patch, local: true do |form| %>
+          <div class="row">
+            <div class="medium-6 columns">
+              <%= form.label :name, "Plan Name" %>
+              <%= form.text_field :name, required: true %>
+              <% if @plan.errors[:name].any? %>
+                <small class="error"><%= @plan.errors[:name].first %></small>
+              <% end %>
+            </div>
+            <div class="medium-6 columns">
+              <%= form.label :monthly_message_limit, "Monthly Message Limit" %>
+              <%= form.number_field :monthly_message_limit, required: true %>
+              <% if @plan.errors[:monthly_message_limit].any? %>
+                <small class="error"><%= @plan.errors[:monthly_message_limit].first %></small>
+              <% end %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-4 columns">
+              <%= form.label :price, "Price" %>
+              <%= form.number_field :price, step: 0.01, required: true %>
+              <% if @plan.errors[:price].any? %>
+                <small class="error"><%= @plan.errors[:price].first %></small>
+              <% end %>
+            </div>
+            <div class="medium-4 columns">
+              <%= form.label :currency, "Currency" %>
+              <%= form.select :currency, 
+                              options_for_select([['USD', 'USD'], ['EUR', 'EUR'], ['COP', 'COP']], @plan.currency),
+                              {}, { class: 'form-control' } %>
+            </div>
+            <div class="medium-4 columns">
+              <%= form.label :payment_link_url, "Payment Link URL (Optional)" %>
+              <%= form.url_field :payment_link_url %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-12 columns">
+              <%= form.label :description, "Description" %>
+              <%= form.text_area :description, rows: 3 %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-6 columns">
+              <%= form.label :features, "Features (JSON)" %>
+              <%= form.text_area :features, rows: 6, value: @plan.features.present? ? JSON.pretty_generate(@plan.features) : '' %>
+              <small class="help-text">Enter features as JSON object</small>
+              <% if @plan.errors[:features].any? %>
+                <small class="error"><%= @plan.errors[:features].first %></small>
+              <% end %>
+            </div>
+            <div class="medium-6 columns">
+              <div class="checkbox-group">
+                <%= form.check_box :active %>
+                <%= form.label :active, "Active Plan" %>
+                <small class="help-text">Only active plans are available for purchase</small>
+              </div>
+              
+              <div class="plan-stats-summary">
+                <h5>Current Usage</h5>
+                <div class="stat-item">
+                  <span class="stat-label">Active Accounts:</span>
+                  <span class="stat-value"><%= @plan.accounts.count %></span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Total Revenue:</span>
+                  <span class="stat-value"><%= number_to_currency(@plan.accounts.joins(:billing_transactions).where(billing_transactions: { status: :successful }).sum('billing_transactions.amount')) %></span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Created:</span>
+                  <span class="stat-value"><%= @plan.created_at.strftime('%B %d, %Y') %></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <%= form.submit "Update Plan", class: "button primary" %>
+            <%= link_to "Cancel", super_admin_billing_plans_path, class: "button secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-4 columns">
+    <!-- Plan Preview -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Plan Preview</h3>
+      </div>
+      <div class="card-body">
+        <div class="plan-preview">
+          <div class="preview-header">
+            <h4 id="preview-name"><%= @plan.name %></h4>
+            <div class="preview-price">
+              <span id="preview-price"><%= number_to_currency(@plan.price) %></span>
+              <span class="period">/<span id="preview-currency"><%= @plan.currency %></span> month</span>
+            </div>
+          </div>
+          
+          <div class="preview-limit">
+            <strong id="preview-limit"><%= number_with_delimiter(@plan.monthly_message_limit) %></strong> messages/month
+          </div>
+          
+          <div class="preview-description">
+            <p id="preview-desc"><%= @plan.description.present? ? @plan.description : 'No description provided' %></p>
+          </div>
+          
+          <div class="preview-features" id="preview-features">
+            <% if @plan.features.present? %>
+              <h5>Features:</h5>
+              <ul>
+                <% @plan.features.each do |key, value| %>
+                  <li><%= key.humanize %>: <%= value %></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="no-features">No features defined</p>
+            <% end %>
+          </div>
+          
+          <div class="preview-status">
+            <span class="badge <%= @plan.active? ? 'success' : 'danger' %>" id="preview-status">
+              <%= @plan.active? ? 'Active' : 'Inactive' %>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Danger Zone -->
+    <% if @plan.accounts.empty? %>
+      <div class="card danger-zone">
+        <div class="card-header">
+          <h3>Danger Zone</h3>
+        </div>
+        <div class="card-body">
+          <p>This plan has no active accounts and can be safely deleted.</p>
+          <%= link_to "Delete Plan", super_admin_billing_plan_path(@plan), 
+                      method: :delete, 
+                      class: "button alert",
+                      confirm: "Are you sure you want to delete this plan? This action cannot be undone." %>
+        </div>
+      </div>
+    <% else %>
+      <div class="card warning-zone">
+        <div class="card-header">
+          <h3>Active Plan</h3>
+        </div>
+        <div class="card-body">
+          <p>This plan has <%= pluralize(@plan.accounts.count, 'active account') %> and cannot be deleted.</p>
+          <p>To delete this plan, first migrate all accounts to other plans.</p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+// Live preview updates
+document.addEventListener('DOMContentLoaded', function() {
+  const nameField = document.getElementById('billing_plan_name');
+  const priceField = document.getElementById('billing_plan_price');
+  const currencyField = document.getElementById('billing_plan_currency');
+  const limitField = document.getElementById('billing_plan_monthly_message_limit');
+  const descField = document.getElementById('billing_plan_description');
+  const featuresField = document.getElementById('billing_plan_features');
+  const activeField = document.getElementById('billing_plan_active');
+  
+  function updatePreview() {
+    // Update name
+    if (nameField.value) {
+      document.getElementById('preview-name').textContent = nameField.value;
+    }
+    
+    // Update price
+    if (priceField.value) {
+      const price = parseFloat(priceField.value);
+      const currency = currencyField.value;
+      document.getElementById('preview-price').textContent = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+      }).format(price);
+    }
+    
+    // Update currency
+    document.getElementById('preview-currency').textContent = currencyField.value;
+    
+    // Update limit
+    if (limitField.value) {
+      const limit = parseInt(limitField.value);
+      document.getElementById('preview-limit').textContent = limit.toLocaleString();
+    }
+    
+    // Update description
+    const desc = descField.value || 'No description provided';
+    document.getElementById('preview-desc').textContent = desc;
+    
+    // Update status
+    const status = activeField.checked ? 'Active' : 'Inactive';
+    const statusBadge = document.getElementById('preview-status');
+    statusBadge.textContent = status;
+    statusBadge.className = `badge ${activeField.checked ? 'success' : 'danger'}`;
+    
+    // Update features
+    try {
+      if (featuresField.value.trim()) {
+        const features = JSON.parse(featuresField.value);
+        let featuresHtml = '<h5>Features:</h5><ul>';
+        for (const [key, value] of Object.entries(features)) {
+          featuresHtml += `<li>${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}</li>`;
+        }
+        featuresHtml += '</ul>';
+        document.getElementById('preview-features').innerHTML = featuresHtml;
+      } else {
+        document.getElementById('preview-features').innerHTML = '<p class="no-features">No features defined</p>';
+      }
+    } catch (e) {
+      document.getElementById('preview-features').innerHTML = '<p class="no-features">Invalid JSON format</p>';
+    }
+  }
+  
+  // Add event listeners
+  [nameField, priceField, currencyField, limitField, descField, featuresField, activeField].forEach(field => {
+    if (field) {
+      field.addEventListener('input', updatePreview);
+      field.addEventListener('change', updatePreview);
+    }
+  });
+});
+</script>
+
+<style>
+.plan-preview {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+}
+
+.preview-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.preview-header h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.4em;
+  color: #333;
+}
+
+.preview-price {
+  font-size: 2em;
+  font-weight: bold;
+  color: #007cba;
+}
+
+.preview-price .period {
+  font-size: 0.5em;
+  color: #666;
+  font-weight: normal;
+}
+
+.preview-limit {
+  text-align: center;
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.preview-description p {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.preview-features {
+  margin-bottom: 20px;
+}
+
+.preview-features h5 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.preview-features ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.preview-features li {
+  margin-bottom: 4px;
+}
+
+.no-features {
+  font-style: italic;
+  color: #999;
+  font-size: 0.9em;
+}
+
+.preview-status {
+  text-align: center;
+}
+
+.plan-stats-summary {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.plan-stats-summary h5 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.stat-label {
+  color: #666;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: #333;
+}
+
+.danger-zone {
+  border-left: 4px solid #f44336;
+}
+
+.danger-zone .card-header {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.warning-zone {
+  border-left: 4px solid #ff9800;
+}
+
+.warning-zone .card-header {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.checkbox-group {
+  margin: 20px 0;
+}
+
+.help-text {
+  color: #666;
+  font-size: 0.85em;
+  margin-top: 5px;
+  display: block;
+}
+
+.error {
+  color: #f44336;
+  font-size: 0.85em;
+  margin-top: 5px;
+  display: block;
+}
+
+.form-actions {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.form-actions .button {
+  margin: 0 10px;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+</style>

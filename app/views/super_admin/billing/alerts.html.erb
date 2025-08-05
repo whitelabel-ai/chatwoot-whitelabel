@@ -1,0 +1,689 @@
+<% content_for :page_title do %>
+  Billing Alerts
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Billing Alerts</h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Billing", super_admin_billing_index_path, class: "button secondary" %>
+        <%= link_to "Refresh Alerts", super_admin_billing_alerts_path, class: "button primary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Summary -->
+<div class="row">
+  <div class="medium-3 columns">
+    <div class="alert-summary critical">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-count"><%= @alerts[:critical].count %></div>
+      <div class="alert-label">Critical Alerts</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="alert-summary warning">
+      <div class="alert-icon">⚡</div>
+      <div class="alert-count"><%= @alerts[:warning].count %></div>
+      <div class="alert-label">Warning Alerts</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="alert-summary info">
+      <div class="alert-icon">ℹ️</div>
+      <div class="alert-count"><%= @alerts[:info].count %></div>
+      <div class="alert-label">Info Alerts</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="alert-summary total">
+      <div class="alert-icon">📊</div>
+      <div class="alert-count"><%= @alerts.values.sum(&:count) %></div>
+      <div class="alert-label">Total Alerts</div>
+    </div>
+  </div>
+</div>
+
+<!-- Critical Alerts -->
+<% if @alerts[:critical].any? %>
+  <div class="row">
+    <div class="medium-12 columns">
+      <div class="card alert-card critical">
+        <div class="card-header">
+          <h3>🚨 Critical Alerts (<%= @alerts[:critical].count %>)</h3>
+          <span class="alert-badge critical">Immediate Action Required</span>
+        </div>
+        <div class="card-body">
+          <div class="alerts-list">
+            <% @alerts[:critical].each do |alert| %>
+              <div class="alert-item critical">
+                <div class="alert-icon-large">⚠️</div>
+                <div class="alert-content">
+                  <h4><%= alert[:title] %></h4>
+                  <p><%= alert[:message] %></p>
+                  <div class="alert-meta">
+                    <span class="alert-account">Account: <%= alert[:account].name %></span>
+                    <span class="alert-time"><%= time_ago_in_words(alert[:created_at]) %> ago</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <%= link_to "View Account", super_admin_billing_show_path(alert[:account]), class: "button tiny primary" %>
+                  <% if alert[:type] == 'limit_exceeded' %>
+                    <%= link_to "Reset Usage", super_admin_billing_reset_usage_path(alert[:account]), 
+                                method: :patch, 
+                                class: "button tiny warning",
+                                confirm: "Reset monthly usage for #{alert[:account].name}?" %>
+                    <%= link_to "Suspend", super_admin_billing_suspend_account_path(alert[:account]), 
+                                method: :patch, 
+                                class: "button tiny alert",
+                                confirm: "Suspend account #{alert[:account].name}?" %>
+                  <% elsif alert[:type] == 'payment_failed' %>
+                    <%= link_to "View Transaction", super_admin_billing_transaction_path(alert[:transaction_id]), class: "button tiny secondary" if alert[:transaction_id] %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Warning Alerts -->
+<% if @alerts[:warning].any? %>
+  <div class="row">
+    <div class="medium-12 columns">
+      <div class="card alert-card warning">
+        <div class="card-header">
+          <h3>⚡ Warning Alerts (<%= @alerts[:warning].count %>)</h3>
+          <span class="alert-badge warning">Attention Needed</span>
+        </div>
+        <div class="card-body">
+          <div class="alerts-list">
+            <% @alerts[:warning].each do |alert| %>
+              <div class="alert-item warning">
+                <div class="alert-icon-large">⚡</div>
+                <div class="alert-content">
+                  <h4><%= alert[:title] %></h4>
+                  <p><%= alert[:message] %></p>
+                  <div class="alert-meta">
+                    <span class="alert-account">Account: <%= alert[:account].name %></span>
+                    <span class="alert-time"><%= time_ago_in_words(alert[:created_at]) %> ago</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <%= link_to "View Account", super_admin_billing_show_path(alert[:account]), class: "button tiny primary" %>
+                  <% if alert[:type] == 'near_limit' %>
+                    <%= link_to "Upgrade Plan", super_admin_billing_show_path(alert[:account], anchor: 'change-plan'), class: "button tiny success" %>
+                  <% elsif alert[:type] == 'subscription_expiring' %>
+                    <%= link_to "Renew Subscription", super_admin_billing_force_renewal_path(alert[:account]), 
+                                method: :patch, 
+                                class: "button tiny success",
+                                confirm: "Force renewal for #{alert[:account].name}?" %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Info Alerts -->
+<% if @alerts[:info].any? %>
+  <div class="row">
+    <div class="medium-12 columns">
+      <div class="card alert-card info">
+        <div class="card-header">
+          <h3>ℹ️ Information Alerts (<%= @alerts[:info].count %>)</h3>
+          <span class="alert-badge info">For Your Information</span>
+        </div>
+        <div class="card-body">
+          <div class="alerts-list">
+            <% @alerts[:info].each do |alert| %>
+              <div class="alert-item info">
+                <div class="alert-icon-large">ℹ️</div>
+                <div class="alert-content">
+                  <h4><%= alert[:title] %></h4>
+                  <p><%= alert[:message] %></p>
+                  <div class="alert-meta">
+                    <span class="alert-account">Account: <%= alert[:account].name %></span>
+                    <span class="alert-time"><%= time_ago_in_words(alert[:created_at]) %> ago</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <%= link_to "View Account", super_admin_billing_show_path(alert[:account]), class: "button tiny primary" %>
+                  <% if alert[:type] == 'new_subscription' %>
+                    <%= link_to "View Plan", super_admin_billing_plan_path(alert[:plan_id]), class: "button tiny secondary" if alert[:plan_id] %>
+                  <% elsif alert[:type] == 'payment_successful' %>
+                    <%= link_to "View Transaction", super_admin_billing_transaction_path(alert[:transaction_id]), class: "button tiny secondary" if alert[:transaction_id] %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- No Alerts State -->
+<% if @alerts.values.all?(&:empty?) %>
+  <div class="row">
+    <div class="medium-12 columns">
+      <div class="card">
+        <div class="card-body">
+          <div class="no-alerts-state">
+            <div class="no-alerts-icon">✅</div>
+            <h3>All Clear!</h3>
+            <p>There are no billing alerts at this time. All accounts are operating normally.</p>
+            <div class="no-alerts-actions">
+              <%= link_to "View All Accounts", super_admin_billing_index_path, class: "button primary" %>
+              <%= link_to "Usage Reports", super_admin_billing_usage_reports_path, class: "button secondary" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Alert Statistics -->
+<div class="row">
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Alert Trends (Last 30 Days)</h3>
+      </div>
+      <div class="card-body">
+        <% if @alert_trends.any? %>
+          <div class="trends-chart">
+            <% @alert_trends.each do |date, counts| %>
+              <div class="trend-day">
+                <div class="trend-date"><%= date.strftime('%m/%d') %></div>
+                <div class="trend-bars">
+                  <div class="trend-bar critical" style="height: <%= (counts[:critical] * 5) %>px" title="<%= counts[:critical] %> critical alerts"></div>
+                  <div class="trend-bar warning" style="height: <%= (counts[:warning] * 3) %>px" title="<%= counts[:warning] %> warning alerts"></div>
+                  <div class="trend-bar info" style="height: <%= (counts[:info] * 2) %>px" title="<%= counts[:info] %> info alerts"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <div class="trends-legend">
+            <div class="legend-item">
+              <div class="legend-color critical"></div>
+              <span>Critical</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color warning"></div>
+              <span>Warning</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color info"></div>
+              <span>Info</span>
+            </div>
+          </div>
+        <% else %>
+          <p class="no-data">No alert trend data available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Alert Types Distribution</h3>
+      </div>
+      <div class="card-body">
+        <% alert_types = @alerts.values.flatten.group_by { |a| a[:type] }.transform_values(&:count) %>
+        <% if alert_types.any? %>
+          <div class="alert-types-list">
+            <% alert_types.sort_by { |_, count| -count }.each do |type, count| %>
+              <div class="alert-type-item">
+                <div class="alert-type-info">
+                  <strong><%= type.humanize %></strong>
+                  <span class="alert-type-count"><%= count %> alerts</span>
+                </div>
+                <div class="alert-type-bar">
+                  <div class="alert-type-fill" style="width: <%= (count.to_f / alert_types.values.max * 100).round(1) %>%"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No alert type data available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Quick Actions</h3>
+      </div>
+      <div class="card-body">
+        <div class="quick-actions-grid">
+          <div class="quick-action">
+            <h4>Bulk Operations</h4>
+            <p>Perform actions on multiple accounts at once</p>
+            <div class="action-buttons">
+              <%= link_to "Reset All Over-Limit", super_admin_billing_reset_all_usage_path, 
+                          method: :patch, 
+                          class: "button warning",
+                          confirm: "Reset usage for all accounts that have exceeded their limits?" %>
+              <%= link_to "Suspend Exceeded Accounts", super_admin_billing_check_and_suspend_path, 
+                          method: :patch, 
+                          class: "button alert",
+                          confirm: "Suspend all accounts that have exceeded their message limits?" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <h4>Notifications</h4>
+            <p>Send notifications to accounts with alerts</p>
+            <div class="action-buttons">
+              <%= link_to "Notify Near Limit", super_admin_billing_notify_near_limit_path, 
+                          method: :patch, 
+                          class: "button warning",
+                          confirm: "Send notifications to all accounts near their message limit?" %>
+              <%= link_to "Notify Exceeded", super_admin_billing_notify_exceeded_path, 
+                          method: :patch, 
+                          class: "button alert",
+                          confirm: "Send notifications to all accounts that have exceeded their limit?" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <h4>Reports</h4>
+            <p>Generate detailed reports for analysis</p>
+            <div class="action-buttons">
+              <%= link_to "Usage Report", super_admin_billing_usage_reports_path, class: "button secondary" %>
+              <%= link_to "Transaction Report", super_admin_billing_transactions_path, class: "button secondary" %>
+              <%= link_to "Export Alerts CSV", super_admin_billing_alerts_path(format: :csv), class: "button primary" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.alert-summary {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  border-left: 4px solid;
+}
+
+.alert-summary.critical {
+  border-left-color: #f44336;
+}
+
+.alert-summary.warning {
+  border-left-color: #ff9800;
+}
+
+.alert-summary.info {
+  border-left-color: #2196F3;
+}
+
+.alert-summary.total {
+  border-left-color: #9C27B0;
+}
+
+.alert-icon {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+.alert-count {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.alert-summary.critical .alert-count {
+  color: #f44336;
+}
+
+.alert-summary.warning .alert-count {
+  color: #ff9800;
+}
+
+.alert-summary.info .alert-count {
+  color: #2196F3;
+}
+
+.alert-summary.total .alert-count {
+  color: #9C27B0;
+}
+
+.alert-label {
+  font-weight: bold;
+  color: #333;
+}
+
+.alert-card {
+  border-left: 4px solid;
+}
+
+.alert-card.critical {
+  border-left-color: #f44336;
+}
+
+.alert-card.warning {
+  border-left-color: #ff9800;
+}
+
+.alert-card.info {
+  border-left-color: #2196F3;
+}
+
+.alert-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.alert-badge.critical {
+  background-color: #f44336;
+  color: white;
+}
+
+.alert-badge.warning {
+  background-color: #ff9800;
+  color: white;
+}
+
+.alert-badge.info {
+  background-color: #2196F3;
+  color: white;
+}
+
+.alerts-list {
+  space-y: 15px;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border-left: 4px solid;
+}
+
+.alert-item.critical {
+  background-color: rgba(244, 67, 54, 0.05);
+  border-left-color: #f44336;
+}
+
+.alert-item.warning {
+  background-color: rgba(255, 152, 0, 0.05);
+  border-left-color: #ff9800;
+}
+
+.alert-item.info {
+  background-color: rgba(33, 150, 243, 0.05);
+  border-left-color: #2196F3;
+}
+
+.alert-icon-large {
+  font-size: 2em;
+  margin-right: 20px;
+  margin-top: 5px;
+}
+
+.alert-content {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.alert-content h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.alert-content p {
+  margin: 0 0 15px 0;
+  color: #666;
+  line-height: 1.4;
+}
+
+.alert-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9em;
+  color: #999;
+}
+
+.alert-account {
+  font-weight: bold;
+}
+
+.alert-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.no-alerts-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-alerts-icon {
+  font-size: 4em;
+  margin-bottom: 20px;
+}
+
+.no-alerts-state h3 {
+  margin: 0 0 15px 0;
+  color: #4CAF50;
+  font-size: 2em;
+}
+
+.no-alerts-state p {
+  margin: 0 0 30px 0;
+  color: #666;
+  font-size: 1.1em;
+}
+
+.no-alerts-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.trends-chart {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  height: 100px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.trend-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trend-date {
+  font-size: 0.8em;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: end;
+  gap: 1px;
+  height: 60px;
+}
+
+.trend-bar {
+  width: 8px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+
+.trend-bar.critical {
+  background-color: #f44336;
+}
+
+.trend-bar.warning {
+  background-color: #ff9800;
+}
+
+.trend-bar.info {
+  background-color: #2196F3;
+}
+
+.trends-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.critical {
+  background-color: #f44336;
+}
+
+.legend-color.warning {
+  background-color: #ff9800;
+}
+
+.legend-color.info {
+  background-color: #2196F3;
+}
+
+.alert-types-list {
+  space-y: 15px;
+}
+
+.alert-type-item {
+  margin-bottom: 15px;
+}
+
+.alert-type-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.alert-type-count {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.alert-type-bar {
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.alert-type-fill {
+  height: 100%;
+  background-color: #007cba;
+  transition: width 0.3s ease;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.quick-action {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.quick-action h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.quick-action p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+  font-style: italic;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+</style>

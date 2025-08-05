@@ -1,0 +1,604 @@
+<% content_for :page_title do %>
+  Plan Details - <%= @plan.name %>
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Plan Details: <%= @plan.name %></h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Plans", super_admin_billing_plans_path, class: "button secondary" %>
+        <%= link_to "Edit Plan", edit_super_admin_billing_plan_path(@plan), class: "button primary" %>
+        <% if @plan.accounts.empty? %>
+          <%= link_to "Delete Plan", super_admin_billing_plan_path(@plan), 
+                      method: :delete, 
+                      class: "button alert",
+                      confirm: "Are you sure you want to delete this plan?" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Plan Information -->
+  <div class="medium-8 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Plan Information</h3>
+        <span class="badge <%= @plan.active? ? 'success' : 'danger' %>">
+          <%= @plan.active? ? 'Active' : 'Inactive' %>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="plan-details-grid">
+          <div class="detail-item">
+            <label>Plan Name:</label>
+            <span><%= @plan.name %></span>
+          </div>
+          
+          <div class="detail-item">
+            <label>Monthly Message Limit:</label>
+            <span><%= number_with_delimiter(@plan.monthly_message_limit) %> messages</span>
+          </div>
+          
+          <div class="detail-item">
+            <label>Price:</label>
+            <span><%= number_to_currency(@plan.price) %> <%= @plan.currency %>/month</span>
+          </div>
+          
+          <div class="detail-item">
+            <label>Currency:</label>
+            <span><%= @plan.currency %></span>
+          </div>
+          
+          <% if @plan.payment_link_url.present? %>
+            <div class="detail-item">
+              <label>Payment Link:</label>
+              <span><%= link_to @plan.payment_link_url, @plan.payment_link_url, target: "_blank", class: "external-link" %></span>
+            </div>
+          <% end %>
+          
+          <div class="detail-item">
+            <label>Created:</label>
+            <span><%= @plan.created_at.strftime('%B %d, %Y at %I:%M %p') %></span>
+          </div>
+          
+          <div class="detail-item">
+            <label>Last Updated:</label>
+            <span><%= @plan.updated_at.strftime('%B %d, %Y at %I:%M %p') %></span>
+          </div>
+        </div>
+        
+        <% if @plan.description.present? %>
+          <div class="plan-description">
+            <h4>Description</h4>
+            <p><%= @plan.description %></p>
+          </div>
+        <% end %>
+        
+        <% if @plan.features.present? %>
+          <div class="plan-features">
+            <h4>Features</h4>
+            <div class="features-grid">
+              <% @plan.features.each do |key, value| %>
+                <div class="feature-item">
+                  <span class="feature-key"><%= key.humanize %>:</span>
+                  <span class="feature-value"><%= value %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Accounts using this plan -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Accounts Using This Plan (<%= @plan.accounts.count %>)</h3>
+      </div>
+      <div class="card-body">
+        <% if @plan.accounts.any? %>
+          <div class="accounts-table-container">
+            <table class="accounts-table">
+              <thead>
+                <tr>
+                  <th>Account Name</th>
+                  <th>Status</th>
+                  <th>Messages Used</th>
+                  <th>Usage %</th>
+                  <th>Subscription Status</th>
+                  <th>Last Payment</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @plan.accounts.includes(:current_subscription, :billing_transactions).each do |account| %>
+                  <% subscription = account.current_subscription %>
+                  <% last_transaction = account.billing_transactions.successful.order(created_at: :desc).first %>
+                  <tr>
+                    <td>
+                      <div class="account-info">
+                        <strong><%= account.name %></strong>
+                        <small class="account-id">#<%= account.id %></small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge <%= account.status == 'active' ? 'success' : 'danger' %>">
+                        <%= account.status.humanize %>
+                      </span>
+                    </td>
+                    <td>
+                      <%= number_with_delimiter(account.messages_used_this_month) %> / 
+                      <%= number_with_delimiter(account.messages_limit) %>
+                    </td>
+                    <td>
+                      <div class="usage-bar">
+                        <div class="usage-fill" style="width: <%= account.usage_percentage %>%"></div>
+                        <span class="usage-text"><%= account.usage_percentage.round(1) %>%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <% if subscription %>
+                        <span class="badge <%= subscription.status == 'active' ? 'success' : 'warning' %>">
+                          <%= subscription.status.humanize %>
+                        </span>
+                        <small class="subscription-dates">
+                          <%= subscription.current_period_start.strftime('%m/%d') %> - 
+                          <%= subscription.current_period_end.strftime('%m/%d/%Y') %>
+                        </small>
+                      <% else %>
+                        <span class="badge danger">No Subscription</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if last_transaction %>
+                        <%= number_to_currency(last_transaction.amount) %>
+                        <small class="transaction-date">
+                          <%= last_transaction.created_at.strftime('%m/%d/%Y') %>
+                        </small>
+                      <% else %>
+                        <span class="no-payment">No payments</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <%= link_to "View", super_admin_billing_show_path(account), class: "button tiny secondary" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="empty-state">
+            <h4>No accounts using this plan</h4>
+            <p>This plan is not currently being used by any accounts.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Statistics Sidebar -->
+  <div class="medium-4 columns">
+    <!-- Plan Statistics -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Plan Statistics</h3>
+      </div>
+      <div class="card-body">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number"><%= @plan.accounts.count %></div>
+            <div class="stat-label">Active Accounts</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-number">
+              <%= number_to_currency(@plan.accounts.joins(:billing_transactions).where(billing_transactions: { status: :successful }).sum('billing_transactions.amount')) %>
+            </div>
+            <div class="stat-label">Total Revenue</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-number">
+              <%= number_to_currency(@plan.accounts.joins(:billing_transactions).where(billing_transactions: { status: :successful, created_at: 1.month.ago..Time.current }).sum('billing_transactions.amount')) %>
+            </div>
+            <div class="stat-label">This Month Revenue</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-number">
+              <%= number_with_delimiter(@plan.accounts.joins(:message_consumption_logs).where(message_consumption_logs: { created_at: 1.month.ago..Time.current }).sum('message_consumption_logs.message_count')) %>
+            </div>
+            <div class="stat-label">Messages This Month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Usage Distribution -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Usage Distribution</h3>
+      </div>
+      <div class="card-body">
+        <% if @plan.accounts.any? %>
+          <% usage_ranges = {
+            'Under 25%' => @plan.accounts.select { |a| a.usage_percentage < 25 }.count,
+            '25-50%' => @plan.accounts.select { |a| a.usage_percentage >= 25 && a.usage_percentage < 50 }.count,
+            '50-75%' => @plan.accounts.select { |a| a.usage_percentage >= 50 && a.usage_percentage < 75 }.count,
+            '75-90%' => @plan.accounts.select { |a| a.usage_percentage >= 75 && a.usage_percentage < 90 }.count,
+            'Over 90%' => @plan.accounts.select { |a| a.usage_percentage >= 90 }.count
+          } %>
+          
+          <div class="usage-distribution">
+            <% usage_ranges.each do |range, count| %>
+              <div class="usage-range">
+                <div class="range-info">
+                  <span class="range-label"><%= range %></span>
+                  <span class="range-count"><%= count %> accounts</span>
+                </div>
+                <div class="range-bar">
+                  <div class="range-fill" style="width: <%= @plan.accounts.count > 0 ? (count.to_f / @plan.accounts.count * 100) : 0 %>%"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No usage data available</p>
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Transactions</h3>
+      </div>
+      <div class="card-body">
+        <% recent_transactions = @plan.accounts.joins(:billing_transactions).includes(:billing_transactions).map(&:billing_transactions).flatten.sort_by(&:created_at).reverse.first(5) %>
+        <% if recent_transactions.any? %>
+          <div class="transactions-list">
+            <% recent_transactions.each do |transaction| %>
+              <div class="transaction-item">
+                <div class="transaction-info">
+                  <strong><%= transaction.account.name %></strong>
+                  <span class="transaction-amount"><%= number_to_currency(transaction.amount) %></span>
+                </div>
+                <div class="transaction-meta">
+                  <span class="badge <%= transaction.status == 'successful' ? 'success' : transaction.status == 'failed' ? 'danger' : 'warning' %>">
+                    <%= transaction.status.humanize %>
+                  </span>
+                  <small class="transaction-date"><%= transaction.created_at.strftime('%m/%d/%Y') %></small>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <%= link_to "View All Transactions", super_admin_billing_transactions_path(plan_id: @plan.id), class: "button tiny secondary full-width" %>
+        <% else %>
+          <p class="no-data">No transactions found</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.plan-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-item label {
+  font-weight: bold;
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.detail-item span {
+  color: #333;
+  font-size: 1em;
+}
+
+.external-link {
+  color: #007cba;
+  text-decoration: none;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+.plan-description {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.plan-description h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.plan-features {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.plan-features h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.feature-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.feature-key {
+  font-weight: bold;
+  color: #666;
+}
+
+.feature-value {
+  color: #333;
+}
+
+.accounts-table-container {
+  overflow-x: auto;
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.accounts-table th,
+.accounts-table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.accounts-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: #666;
+}
+
+.account-info strong {
+  display: block;
+  color: #333;
+}
+
+.account-id {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.usage-bar {
+  position: relative;
+  width: 80px;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #f44336 90%);
+  transition: width 0.3s ease;
+}
+
+.usage-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7em;
+  font-weight: bold;
+  color: #333;
+}
+
+.subscription-dates {
+  display: block;
+  color: #666;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+
+.transaction-date {
+  display: block;
+  color: #666;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+
+.no-payment {
+  color: #999;
+  font-style: italic;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-number {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #007cba;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.usage-distribution {
+  space-y: 15px;
+}
+
+.usage-range {
+  margin-bottom: 15px;
+}
+
+.range-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.range-label {
+  font-weight: bold;
+  color: #333;
+}
+
+.range-count {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.range-bar {
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.range-fill {
+  height: 100%;
+  background-color: #007cba;
+  transition: width 0.3s ease;
+}
+
+.transactions-list {
+  margin-bottom: 15px;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-info {
+  flex: 1;
+}
+
+.transaction-info strong {
+  display: block;
+  color: #333;
+  font-size: 0.9em;
+}
+
+.transaction-amount {
+  color: #007cba;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.transaction-meta {
+  text-align: right;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.empty-state,
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+}
+
+.empty-state h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.badge.warning {
+  background-color: #ff9800;
+  color: white;
+}
+</style>

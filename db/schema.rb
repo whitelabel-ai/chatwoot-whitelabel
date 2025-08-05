@@ -28,6 +28,25 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_22_152516) do
     t.index ["token"], name: "index_access_tokens_on_token", unique: true
   end
 
+  create_table "account_subscriptions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "billing_plan_id", null: false
+    t.integer "status", default: 0, null: false
+    t.date "current_period_start"
+    t.date "current_period_end"
+    t.integer "messages_used", default: 0, null: false
+    t.integer "messages_limit", null: false
+    t.datetime "last_reset_at"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_account_subscriptions_on_account_id", unique: true
+    t.index ["billing_plan_id"], name: "index_account_subscriptions_on_billing_plan_id"
+    t.index ["current_period_end"], name: "index_account_subscriptions_on_current_period_end"
+    t.index ["status"], name: "index_account_subscriptions_on_status"
+    t.check_constraint "status = ANY (ARRAY[0, 1, 2, 3])", name: "account_subscriptions_status_check"
+  end
+
   create_table "account_users", force: :cascade do |t|
     t.bigint "account_id"
     t.bigint "user_id"
@@ -218,6 +237,47 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_22_152516) do
     t.datetime "updated_at", null: false
     t.boolean "active", default: true, null: false
     t.index ["account_id"], name: "index_automation_rules_on_account_id"
+  end
+
+  create_table "billing_plans", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.integer "monthly_message_limit", null: false
+    t.decimal "price", precision: 10, scale: 2, null: false
+    t.string "currency", default: "USD", null: false
+    t.boolean "active", default: true, null: false
+    t.string "payment_link_url"
+    t.jsonb "features", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_billing_plans_on_active"
+    t.index ["name"], name: "index_billing_plans_on_name", unique: true
+  end
+
+  create_table "billing_transactions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "billing_plan_id", null: false
+    t.string "transaction_id", null: false
+    t.integer "transaction_type", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "currency", default: "USD", null: false
+    t.string "payment_method"
+    t.string "payment_gateway", default: "wompi"
+    t.text "gateway_response"
+    t.string "invoice_url"
+    t.datetime "processed_at"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_billing_transactions_on_account_id"
+    t.index ["billing_plan_id"], name: "index_billing_transactions_on_billing_plan_id"
+    t.index ["processed_at"], name: "index_billing_transactions_on_processed_at"
+    t.index ["status"], name: "index_billing_transactions_on_status"
+    t.index ["transaction_id"], name: "index_billing_transactions_on_transaction_id", unique: true
+    t.index ["transaction_type"], name: "index_billing_transactions_on_transaction_type"
+    t.check_constraint "status = ANY (ARRAY[0, 1, 2, 3])", name: "billing_transactions_status_check"
+    t.check_constraint "transaction_type = ANY (ARRAY[0, 1, 2])", name: "billing_transactions_type_check"
   end
 
   create_table "campaigns", force: :cascade do |t|
@@ -825,6 +885,25 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_22_152516) do
     t.index ["user_id"], name: "index_mentions_on_user_id"
   end
 
+  create_table "message_consumption_logs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "message_id", null: false
+    t.bigint "conversation_id", null: false
+    t.date "consumption_date", null: false
+    t.integer "message_type", null: false
+    t.string "source_type"
+    t.integer "messages_remaining_after"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "consumption_date"], name: "idx_msg_logs_account_date"
+    t.index ["account_id", "created_at"], name: "idx_msg_logs_account_created"
+    t.index ["account_id"], name: "index_message_consumption_logs_on_account_id"
+    t.index ["conversation_id"], name: "index_message_consumption_logs_on_conversation_id"
+    t.index ["message_id"], name: "index_message_consumption_logs_on_message_id", unique: true
+    t.check_constraint "message_type = ANY (ARRAY[0, 1, 2, 3, 4])", name: "message_consumption_logs_type_check"
+  end
+
   create_table "messages", id: :serial, force: :cascade do |t|
     t.text "content"
     t.integer "account_id", null: false
@@ -1133,9 +1212,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_22_152516) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_subscriptions", "accounts"
+  add_foreign_key "account_subscriptions", "billing_plans"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "billing_transactions", "accounts"
+  add_foreign_key "billing_transactions", "billing_plans"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "message_consumption_logs", "accounts"
+  add_foreign_key "message_consumption_logs", "conversations"
+  add_foreign_key "message_consumption_logs", "messages"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

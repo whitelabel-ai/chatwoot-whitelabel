@@ -2,6 +2,7 @@ import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
+import billing from './billing.json';
 import auditLogs from './auditLogs.json';
 import automation from './automation.json';
 import bulkActions from './bulkActions.json';
@@ -41,6 +42,7 @@ export default {
   ...agentBots,
   ...agentMgmt,
   ...attributesMgmt,
+  ...billing,
   ...auditLogs,
   ...automation,
   ...bulkActions,

@@ -1,0 +1,1126 @@
+<% content_for :page_title do %>
+  Billing Dashboard
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Billing Dashboard</h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "View All Accounts", super_admin_billing_index_path, class: "button secondary" %>
+        <%= link_to "Generate Report", super_admin_billing_reports_path, class: "button primary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Key Metrics Overview -->
+<div class="row">
+  <div class="medium-3 columns">
+    <div class="metric-card revenue">
+      <div class="metric-icon">💰</div>
+      <div class="metric-value">$<%= number_with_delimiter(@dashboard_data[:total_revenue] || 0) %></div>
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-period">All Time</div>
+      <div class="metric-change <%= @dashboard_data[:revenue_change] && @dashboard_data[:revenue_change] > 0 ? 'positive' : 'negative' %>">
+        <% if @dashboard_data[:revenue_change] %>
+          <%= @dashboard_data[:revenue_change] > 0 ? '↗' : '↘' %> <%= @dashboard_data[:revenue_change].abs.round(1) %>% vs last month
+        <% else %>
+          No previous data
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-3 columns">
+    <div class="metric-card accounts">
+      <div class="metric-icon">👥</div>
+      <div class="metric-value"><%= number_with_delimiter(@dashboard_data[:total_accounts] || 0) %></div>
+      <div class="metric-label">Total Accounts</div>
+      <div class="metric-period">Active: <%= @dashboard_data[:active_accounts] || 0 %></div>
+      <div class="metric-change <%= @dashboard_data[:accounts_change] && @dashboard_data[:accounts_change] > 0 ? 'positive' : 'negative' %>">
+        <% if @dashboard_data[:accounts_change] %>
+          <%= @dashboard_data[:accounts_change] > 0 ? '↗' : '↘' %> <%= @dashboard_data[:accounts_change].abs.round(1) %>% vs last month
+        <% else %>
+          No previous data
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-3 columns">
+    <div class="metric-card messages">
+      <div class="metric-icon">💬</div>
+      <div class="metric-value"><%= number_with_delimiter(@dashboard_data[:total_messages] || 0) %></div>
+      <div class="metric-label">Messages This Month</div>
+      <div class="metric-period">Avg: <%= number_with_delimiter(@dashboard_data[:avg_daily_messages] || 0) %>/day</div>
+      <div class="metric-change <%= @dashboard_data[:messages_change] && @dashboard_data[:messages_change] > 0 ? 'positive' : 'negative' %>">
+        <% if @dashboard_data[:messages_change] %>
+          <%= @dashboard_data[:messages_change] > 0 ? '↗' : '↘' %> <%= @dashboard_data[:messages_change].abs.round(1) %>% vs last month
+        <% else %>
+          No previous data
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-3 columns">
+    <div class="metric-card alerts">
+      <div class="metric-icon">⚠️</div>
+      <div class="metric-value"><%= @dashboard_data[:active_alerts] || 0 %></div>
+      <div class="metric-label">Active Alerts</div>
+      <div class="metric-period">Critical: <%= @dashboard_data[:critical_alerts] || 0 %></div>
+      <div class="metric-action">
+        <%= link_to "View Alerts", super_admin_billing_alerts_path, class: "button tiny primary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row">
+  <div class="medium-4 columns">
+    <div class="stat-card">
+      <h4>Monthly Revenue</h4>
+      <div class="stat-value">$<%= number_with_delimiter(@dashboard_data[:monthly_revenue] || 0) %></div>
+      <div class="stat-comparison">
+        <span class="stat-label">Target: $<%= number_with_delimiter(@dashboard_data[:revenue_target] || 0) %></span>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: <%= [@dashboard_data[:revenue_progress] || 0, 100].min %>%"></div>
+        </div>
+        <span class="progress-text"><%= (@dashboard_data[:revenue_progress] || 0).round(1) %>%</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-4 columns">
+    <div class="stat-card">
+      <h4>Account Growth</h4>
+      <div class="stat-value">+<%= @dashboard_data[:new_accounts_this_month] || 0 %></div>
+      <div class="stat-comparison">
+        <span class="stat-label">New accounts this month</span>
+        <div class="growth-trend">
+          <% (@dashboard_data[:account_growth_trend] || []).each_with_index do |value, index| %>
+            <div class="trend-bar" style="height: <%= (value * 2) %>px" title="<%= value %> accounts"></div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-4 columns">
+    <div class="stat-card">
+      <h4>System Health</h4>
+      <div class="stat-value health-<%= @dashboard_data[:system_health_status] || 'unknown' %>">
+        <%= (@dashboard_data[:system_health_score] || 0).round(1) %>%
+      </div>
+      <div class="stat-comparison">
+        <span class="stat-label">Overall system health</span>
+        <div class="health-indicators">
+          <div class="health-indicator <%= @dashboard_data[:payment_system_status] || 'unknown' %>" title="Payment System">💳</div>
+          <div class="health-indicator <%= @dashboard_data[:billing_system_status] || 'unknown' %>" title="Billing System">💰</div>
+          <div class="health-indicator <%= @dashboard_data[:notification_system_status] || 'unknown' %>" title="Notifications">📧</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row">
+  <div class="medium-8 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Revenue Trend (Last 30 Days)</h3>
+        <div class="chart-controls">
+          <button class="chart-toggle active" data-period="7">7 Days</button>
+          <button class="chart-toggle" data-period="30">30 Days</button>
+          <button class="chart-toggle" data-period="90">90 Days</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <canvas id="revenueChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-4 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Plan Distribution</h3>
+      </div>
+      <div class="card-body">
+        <canvas id="planDistributionChart" width="300" height="300"></canvas>
+        <div class="plan-legend">
+          <% (@dashboard_data[:plan_distribution] || []).each do |plan| %>
+            <div class="legend-item">
+              <div class="legend-color" style="background-color: <%= plan[:color] %>"></div>
+              <span class="legend-label"><%= plan[:name] %></span>
+              <span class="legend-value"><%= plan[:count] %> accounts</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity & Alerts -->
+<div class="row">
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Transactions</h3>
+        <div class="header-actions">
+          <%= link_to "View All", super_admin_billing_transactions_path, class: "button tiny secondary" %>
+        </div>
+      </div>
+      <div class="card-body">
+        <% if @dashboard_data[:recent_transactions]&.any? %>
+          <div class="transactions-list">
+            <% @dashboard_data[:recent_transactions].each do |transaction| %>
+              <div class="transaction-item">
+                <div class="transaction-info">
+                  <strong><%= transaction[:account_name] %></strong>
+                  <small>#<%= transaction[:id] %></small>
+                </div>
+                <div class="transaction-details">
+                  <span class="transaction-amount">$<%= transaction[:amount] %></span>
+                  <span class="transaction-status <%= transaction[:status] %>"><%= transaction[:status].humanize %></span>
+                </div>
+                <div class="transaction-time">
+                  <%= time_ago_in_words(transaction[:created_at]) %> ago
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No recent transactions.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Critical Alerts</h3>
+        <div class="header-actions">
+          <%= link_to "View All", super_admin_billing_alerts_path, class: "button tiny secondary" %>
+        </div>
+      </div>
+      <div class="card-body">
+        <% if @dashboard_data[:critical_alerts_list]&.any? %>
+          <div class="alerts-list">
+            <% @dashboard_data[:critical_alerts_list].each do |alert| %>
+              <div class="alert-item <%= alert[:type] %>">
+                <div class="alert-icon"><%= alert[:icon] %></div>
+                <div class="alert-content">
+                  <strong><%= alert[:title] %></strong>
+                  <p><%= alert[:message] %></p>
+                  <small><%= time_ago_in_words(alert[:created_at]) %> ago</small>
+                </div>
+                <div class="alert-actions">
+                  <%= link_to "View", super_admin_billing_show_path(alert[:account_id]), class: "button tiny primary" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="no-alerts">
+            <div class="no-alerts-icon">✅</div>
+            <p>No critical alerts at this time.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Accounts & Usage Stats -->
+<div class="row">
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Top Revenue Accounts</h3>
+      </div>
+      <div class="card-body">
+        <% if @dashboard_data[:top_revenue_accounts]&.any? %>
+          <div class="top-accounts-list">
+            <% @dashboard_data[:top_revenue_accounts].each_with_index do |account, index| %>
+              <div class="account-item">
+                <div class="account-rank"><%= index + 1 %></div>
+                <div class="account-info">
+                  <strong><%= account[:name] %></strong>
+                  <small><%= account[:plan_name] %></small>
+                </div>
+                <div class="account-stats">
+                  <div class="account-revenue">$<%= number_with_delimiter(account[:revenue]) %></div>
+                  <div class="account-usage"><%= account[:usage_percentage].round(1) %>% usage</div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No revenue data available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Usage Statistics</h3>
+      </div>
+      <div class="card-body">
+        <div class="usage-stats-grid">
+          <div class="usage-stat">
+            <div class="stat-icon">📊</div>
+            <div class="stat-number"><%= (@dashboard_data[:avg_usage_percentage] || 0).round(1) %>%</div>
+            <div class="stat-label">Average Usage</div>
+          </div>
+          
+          <div class="usage-stat">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-number"><%= @dashboard_data[:high_usage_accounts] || 0 %></div>
+            <div class="stat-label">High Usage (>80%)</div>
+          </div>
+          
+          <div class="usage-stat">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-number"><%= @dashboard_data[:over_limit_accounts] || 0 %></div>
+            <div class="stat-label">Over Limit</div>
+          </div>
+          
+          <div class="usage-stat">
+            <div class="stat-icon">💤</div>
+            <div class="stat-number"><%= @dashboard_data[:low_usage_accounts] || 0 %></div>
+            <div class="stat-label">Low Usage (<20%)</div>
+          </div>
+        </div>
+        
+        <div class="usage-chart-mini">
+          <canvas id="usageDistributionChart" width="300" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Quick Actions</h3>
+      </div>
+      <div class="card-body">
+        <div class="quick-actions-grid">
+          <div class="quick-action">
+            <div class="action-icon">👥</div>
+            <h4>Account Management</h4>
+            <p>Manage billing accounts and subscriptions</p>
+            <div class="action-buttons">
+              <%= link_to "View Accounts", super_admin_billing_index_path, class: "button primary" %>
+              <%= link_to "Add Account", new_super_admin_account_path, class: "button secondary" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <div class="action-icon">📋</div>
+            <h4>Plan Management</h4>
+            <p>Create and manage billing plans</p>
+            <div class="action-buttons">
+              <%= link_to "View Plans", super_admin_billing_plans_path, class: "button primary" %>
+              <%= link_to "Create Plan", super_admin_billing_plans_path(anchor: 'new-plan'), class: "button secondary" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <div class="action-icon">💳</div>
+            <h4>Transactions</h4>
+            <p>Monitor payment transactions</p>
+            <div class="action-buttons">
+              <%= link_to "View Transactions", super_admin_billing_transactions_path, class: "button primary" %>
+              <%= link_to "Failed Payments", super_admin_billing_transactions_path(status: 'failed'), class: "button warning" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <div class="action-icon">📊</div>
+            <h4>Reports & Analytics</h4>
+            <p>Generate detailed billing reports</p>
+            <div class="action-buttons">
+              <%= link_to "Generate Report", super_admin_billing_reports_path, class: "button primary" %>
+              <%= link_to "Usage Reports", super_admin_billing_usage_reports_path, class: "button secondary" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <div class="action-icon">⚠️</div>
+            <h4>System Alerts</h4>
+            <p>Monitor and manage system alerts</p>
+            <div class="action-buttons">
+              <%= link_to "View Alerts", super_admin_billing_alerts_path, class: "button primary" %>
+              <%= link_to "Check Limits", super_admin_billing_check_and_suspend_path, method: :patch, class: "button warning", confirm: "Check and suspend accounts that exceeded limits?" %>
+            </div>
+          </div>
+          
+          <div class="quick-action">
+            <div class="action-icon">🔧</div>
+            <h4>System Maintenance</h4>
+            <p>Perform system maintenance tasks</p>
+            <div class="action-buttons">
+              <%= link_to "Reset Usage", super_admin_billing_reset_all_usage_path, method: :patch, class: "button warning", confirm: "Reset monthly usage for all accounts?" %>
+              <%= link_to "Force Renewals", super_admin_billing_force_all_renewals_path, method: :patch, class: "button alert", confirm: "Force renewal for all expired subscriptions?" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart configurations
+const chartColors = {
+  primary: '#007cba',
+  success: '#4CAF50',
+  warning: '#ff9800',
+  danger: '#f44336',
+  info: '#2196F3',
+  secondary: '#6c757d'
+};
+
+// Revenue Chart
+const revenueCtx = document.getElementById('revenueChart');
+if (revenueCtx) {
+  const revenueChart = new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+      labels: <%= raw (@dashboard_data[:revenue_chart]&.dig(:labels) || []).to_json %>,
+      datasets: [{
+        label: 'Daily Revenue',
+        data: <%= raw (@dashboard_data[:revenue_chart]&.dig(:data) || []).to_json %>,
+        borderColor: chartColors.primary,
+        backgroundColor: chartColors.primary + '20',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: chartColors.primary,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              return 'Revenue: $' + context.parsed.y.toLocaleString();
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: '#f0f0f0'
+          },
+          ticks: {
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+  
+  // Chart period toggle
+  document.querySelectorAll('.chart-toggle').forEach(button => {
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.chart-toggle').forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      // Update chart data based on period
+      updateRevenueChart(this.dataset.period);
+    });
+  });
+}
+
+// Plan Distribution Chart
+const planCtx = document.getElementById('planDistributionChart');
+if (planCtx) {
+  new Chart(planCtx, {
+    type: 'doughnut',
+    data: {
+      labels: <%= raw (@dashboard_data[:plan_distribution]&.map { |p| p[:name] } || []).to_json %>,
+      datasets: [{
+        data: <%= raw (@dashboard_data[:plan_distribution]&.map { |p| p[:count] } || []).to_json %>,
+        backgroundColor: <%= raw (@dashboard_data[:plan_distribution]&.map { |p| p[:color] } || []).to_json %>,
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return context.label + ': ' + context.parsed + ' accounts (' + percentage + '%)';
+            }
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  });
+}
+
+// Usage Distribution Chart
+const usageCtx = document.getElementById('usageDistributionChart');
+if (usageCtx) {
+  new Chart(usageCtx, {
+    type: 'bar',
+    data: {
+      labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', '>100%'],
+      datasets: [{
+        label: 'Accounts',
+        data: <%= raw (@dashboard_data[:usage_distribution] || []).to_json %>,
+        backgroundColor: [
+          chartColors.info,
+          chartColors.success,
+          chartColors.primary,
+          chartColors.warning,
+          chartColors.danger,
+          '#8e24aa'
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: '#f0f0f0'
+          },
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateRevenueChart(period) {
+  // This would typically make an AJAX request to get new data
+  console.log('Updating revenue chart for period:', period);
+}
+
+// Auto-refresh dashboard data every 5 minutes
+setInterval(function() {
+  // This would refresh the dashboard data
+  console.log('Auto-refreshing dashboard data...');
+}, 300000);
+</script>
+
+<style>
+.metric-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  border-left: 4px solid;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.metric-card.revenue {
+  border-left-color: #4CAF50;
+}
+
+.metric-card.accounts {
+  border-left-color: #2196F3;
+}
+
+.metric-card.messages {
+  border-left-color: #ff9800;
+}
+
+.metric-card.alerts {
+  border-left-color: #f44336;
+}
+
+.metric-icon {
+  font-size: 2.5em;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.metric-value {
+  font-size: 2.8em;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+  line-height: 1;
+}
+
+.metric-label {
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 1.1em;
+}
+
+.metric-period {
+  color: #999;
+  font-size: 0.9em;
+  margin-bottom: 12px;
+}
+
+.metric-change {
+  font-size: 0.85em;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.metric-change.positive {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.metric-change.negative {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.metric-action {
+  margin-top: 12px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.stat-card h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #007cba;
+  margin-bottom: 15px;
+  line-height: 1;
+}
+
+.stat-value.health-excellent {
+  color: #4CAF50;
+}
+
+.stat-value.health-good {
+  color: #8BC34A;
+}
+
+.stat-value.health-warning {
+  color: #ff9800;
+}
+
+.stat-value.health-critical {
+  color: #f44336;
+}
+
+.stat-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #007cba;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #333;
+}
+
+.growth-trend {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 30px;
+}
+
+.trend-bar {
+  width: 6px;
+  background-color: #007cba;
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.health-indicators {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.health-indicator {
+  font-size: 1.2em;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.health-indicator.excellent {
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.health-indicator.good {
+  background-color: rgba(139, 195, 74, 0.2);
+}
+
+.health-indicator.warning {
+  background-color: rgba(255, 152, 0, 0.2);
+}
+
+.health-indicator.critical {
+  background-color: rgba(244, 67, 54, 0.2);
+}
+
+.chart-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.chart-toggle {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.chart-toggle:hover {
+  background-color: #f5f5f5;
+}
+
+.chart-toggle.active {
+  background: #007cba;
+  color: white;
+  border-color: #007cba;
+}
+
+.plan-legend {
+  margin-top: 20px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.legend-value {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.transactions-list,
+.alerts-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-info strong {
+  display: block;
+  color: #333;
+}
+
+.transaction-info small {
+  color: #666;
+}
+
+.transaction-details {
+  text-align: right;
+}
+
+.transaction-amount {
+  display: block;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.transaction-status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.transaction-status.completed {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.transaction-status.failed {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.transaction-status.pending {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.transaction-time {
+  color: #999;
+  font-size: 0.8em;
+  text-align: right;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-icon {
+  font-size: 1.2em;
+  margin-top: 2px;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-content strong {
+  display: block;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.alert-content p {
+  margin: 0 0 4px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.alert-content small {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.alert-actions {
+  margin-top: 4px;
+}
+
+.no-alerts {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-alerts-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.no-alerts p {
+  color: #666;
+  margin: 0;
+}
+
+.top-accounts-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.account-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.account-item:last-child {
+  border-bottom: none;
+}
+
+.account-rank {
+  width: 30px;
+  height: 30px;
+  background-color: #007cba;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.account-info {
+  flex: 1;
+}
+
+.account-info strong {
+  display: block;
+  color: #333;
+}
+
+.account-info small {
+  color: #666;
+}
+
+.account-stats {
+  text-align: right;
+}
+
+.account-revenue {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.account-usage {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.usage-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.usage-stat {
+  text-align: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-icon {
+  font-size: 1.5em;
+  margin-bottom: 8px;
+}
+
+.stat-number {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #007cba;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.usage-chart-mini {
+  margin-top: 20px;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.quick-action {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quick-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.action-icon {
+  font-size: 2.5em;
+  margin-bottom: 15px;
+  opacity: 0.8;
+}
+
+.quick-action h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.quick-action p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+  font-style: italic;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .metric-card {
+    margin-bottom: 15px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .usage-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-controls {
+    flex-wrap: wrap;
+  }
+}
+</style>

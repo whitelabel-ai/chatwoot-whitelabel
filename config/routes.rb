@@ -300,6 +300,19 @@ Rails.application.routes.draw do
           end
 
           resources :upload, only: [:create]
+          
+          # Billing routes
+          resource :billing, only: [:show], controller: 'billing' do
+            collection do
+              get :plans
+              get :transactions
+              get :usage_report
+              get :alerts
+              post :create_payment
+              post :payment_callback
+              post :upgrade_plan
+            end
+          end
         end
       end
       # end of account scoped api routes
@@ -557,6 +570,33 @@ Rails.application.routes.draw do
 
       # resources that doesn't appear in primary navigation in super admin
       resources :account_users, only: [:new, :create, :show, :destroy]
+      
+      # Billing management routes
+      namespace :billing do
+        root to: 'billing#index'
+        get :accounts, to: 'billing#accounts'
+        get 'accounts/:id', to: 'billing#account_details', as: :account
+        get 'accounts/:id/subscriptions', to: 'billing#account_subscriptions', as: :account_subscriptions
+        get 'accounts/:id/transactions', to: 'billing#account_transactions', as: :account_transactions
+        get 'accounts/:id/usage_report', to: 'billing#account_usage_report', as: :account_usage_report
+        get 'accounts/:id/consumption_logs', to: 'billing#account_consumption_logs', as: :account_consumption_logs
+        
+        resources :plans, path: 'billing_plans' do
+          member do
+            get :show
+          end
+        end
+        
+        post 'accounts/:id/update_plan', to: 'billing#update_account_plan', as: :update_account_plan
+        post 'accounts/:id/force_renewal', to: 'billing#force_renewal', as: :force_renewal
+        post 'accounts/:id/suspend', to: 'billing#suspend_account', as: :suspend_account
+        post 'accounts/:id/activate', to: 'billing#activate_account', as: :activate_account
+        
+        get :transactions, to: 'billing#transactions'
+        get :reports, to: 'billing#reports'
+        post :reset_monthly_usage, to: 'billing#reset_monthly_usage'
+        post :check_limits, to: 'billing#check_limits'
+      end
     end
     authenticated :super_admin do
       mount Sidekiq::Web => '/monitoring/sidekiq'

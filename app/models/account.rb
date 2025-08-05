@@ -98,6 +98,12 @@ class Account < ApplicationRecord
   has_many :whatsapp_channels, dependent: :destroy_async, class_name: '::Channel::Whatsapp'
   has_many :working_hours, dependent: :destroy_async
 
+  # Billing associations
+  has_one :account_subscription, dependent: :destroy
+  has_many :billing_transactions, dependent: :destroy
+  has_many :message_consumption_logs, dependent: :destroy
+  has_one :billing_plan, through: :account_subscription
+
   has_one_attached :contacts_export
 
   enum :locale, LANGUAGES_CONFIG.map { |key, val| [val[:iso_639_1_code], key] }.to_h, prefix: true
@@ -106,7 +112,7 @@ class Account < ApplicationRecord
   scope :with_auto_resolve, -> { where("(settings ->> 'auto_resolve_after')::int IS NOT NULL") }
 
   before_validation :validate_limit_keys
-  after_create_commit :notify_creation
+  after_create_commit :notify_creation, :create_default_subscription!
   after_destroy :remove_account_sequences
 
   def agents
@@ -156,6 +162,70 @@ class Account < ApplicationRecord
     # we need to extract the language code from the locale
     account_locale = locale&.split('_')&.first
     ISO_639.find(account_locale)&.english_name&.downcase || 'english'
+  end
+
+  # Billing methods
+  def current_subscription
+    account_subscription || create_default_subscription!
+  end
+
+  def current_plan
+    current_subscription.billing_plan
+  end
+
+  def messages_used_this_month
+    current_subscription.messages_used
+  end
+
+  def messages_remaining
+    current_subscription.messages_remaining
+  end
+
+  def messages_limit
+    current_subscription.messages_limit
+  end
+
+  def usage_percentage
+    current_subscription.usage_percentage
+  end
+
+  def can_send_messages?
+    current_subscription.can_send_messages?
+  end
+
+  def consume_message!
+    current_subscription.consume_message!
+  end
+
+  def near_message_limit?(threshold = 80)
+    current_subscription.near_limit?(threshold)
+  end
+
+  def message_limit_exceeded?
+    current_subscription.limit_exceeded?
+  end
+
+  def days_until_renewal
+    current_subscription.days_until_renewal
+  end
+
+  def billing_status
+    return 'suspended' unless active?
+    return 'limit_exceeded' if message_limit_exceeded?
+    return 'near_limit' if near_message_limit?
+    
+    'active'
+  end
+
+  def create_default_subscription!
+    default_plan = BillingPlan.default_free_plan
+    return unless default_plan
+
+    AccountSubscription.create!(
+      account: self,
+      billing_plan: default_plan,
+      status: :active
+    )
   end
 
   private

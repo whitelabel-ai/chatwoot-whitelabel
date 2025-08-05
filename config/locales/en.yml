@@ -367,3 +367,30 @@ en:
       subject: 'Finish setting up %{custom_domain}'
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
+  billing:
+    plan:
+      created: 'Billing plan created successfully'
+      updated: 'Billing plan updated successfully'
+      deleted: 'Billing plan deleted successfully'
+      not_found: 'Billing plan not found'
+    subscription:
+      created: 'Subscription created successfully'
+      updated: 'Subscription updated successfully'
+      suspended: 'Account suspended due to insufficient credits'
+      activated: 'Account activated successfully'
+      limit_exceeded: 'Message limit exceeded for current plan'
+      not_found: 'Subscription not found'
+    transaction:
+      created: 'Transaction created successfully'
+      payment_successful: 'Payment processed successfully'
+      payment_failed: 'Payment processing failed'
+      not_found: 'Transaction not found'
+    message:
+      consumption_logged: 'Message consumption logged'
+      limit_reached: 'Monthly message limit reached'
+      account_suspended: 'Account suspended - upgrade plan to continue'
+    errors:
+      invalid_plan: 'Invalid billing plan'
+      insufficient_credits: 'Insufficient message credits'
+      payment_gateway_error: 'Payment gateway error'
+      plan_upgrade_failed: 'Plan upgrade failed'

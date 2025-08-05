@@ -1,0 +1,747 @@
+<% content_for :page_title do %>
+  Transaction Details - #<%= @transaction.id %>
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Transaction #<%= @transaction.id %></h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Transactions", super_admin_billing_transactions_path, class: "button secondary" %>
+        <%= link_to "View Account", super_admin_billing_show_path(@transaction.account), class: "button secondary" %>
+        <% if @transaction.status == 'pending' %>
+          <%= link_to "Mark as Successful", super_admin_billing_mark_transaction_successful_path(@transaction), 
+                      method: :patch, 
+                      class: "button success",
+                      confirm: "Mark this transaction as successful?" %>
+          <%= link_to "Mark as Failed", super_admin_billing_mark_transaction_failed_path(@transaction), 
+                      method: :patch, 
+                      class: "button alert",
+                      confirm: "Mark this transaction as failed?" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Transaction Details -->
+  <div class="medium-8 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Transaction Information</h3>
+        <span class="badge <%= @transaction.status %> large">
+          <%= @transaction.status.humanize %>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="transaction-details-grid">
+          <div class="detail-section">
+            <h4>Basic Information</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Transaction ID:</label>
+                <span class="transaction-id">#<%= @transaction.id %></span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Amount:</label>
+                <span class="amount"><%= number_to_currency(@transaction.amount) %> <%= @transaction.currency %></span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Status:</label>
+                <span class="badge <%= @transaction.status %>"><%= @transaction.status.humanize %></span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Payment Gateway:</label>
+                <span><%= @transaction.payment_gateway.humanize %></span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Gateway Transaction ID:</label>
+                <span class="gateway-id">
+                  <% if @transaction.gateway_transaction_id.present? %>
+                    <%= @transaction.gateway_transaction_id %>
+                  <% else %>
+                    <em>Not provided</em>
+                  <% end %>
+                </span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Created:</label>
+                <span><%= @transaction.created_at.strftime('%B %d, %Y at %I:%M %p') %></span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Last Updated:</label>
+                <span><%= @transaction.updated_at.strftime('%B %d, %Y at %I:%M %p') %></span>
+              </div>
+            </div>
+          </div>
+          
+          <% if @transaction.status == 'failed' && @transaction.failure_reason.present? %>
+            <div class="detail-section failure-section">
+              <h4>Failure Information</h4>
+              <div class="failure-details">
+                <div class="detail-item">
+                  <label>Failure Reason:</label>
+                  <span class="failure-reason"><%= @transaction.failure_reason %></span>
+                </div>
+              </div>
+            </div>
+          <% end %>
+          
+          <% if @transaction.metadata.present? %>
+            <div class="detail-section">
+              <h4>Additional Metadata</h4>
+              <div class="metadata-container">
+                <pre class="metadata-json"><%= JSON.pretty_generate(@transaction.metadata) %></pre>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Account Information -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Account Information</h3>
+      </div>
+      <div class="card-body">
+        <div class="account-details">
+          <div class="account-header">
+            <div class="account-info">
+              <h4><%= @transaction.account.name %></h4>
+              <span class="account-id">Account #<%= @transaction.account.id %></span>
+            </div>
+            <div class="account-status">
+              <span class="badge <%= @transaction.account.status == 'active' ? 'success' : 'danger' %>">
+                <%= @transaction.account.status.humanize %>
+              </span>
+            </div>
+          </div>
+          
+          <div class="account-stats-grid">
+            <div class="stat-item">
+              <label>Current Plan:</label>
+              <span>
+                <% if @transaction.account.current_subscription&.billing_plan %>
+                  <%= @transaction.account.current_subscription.billing_plan.name %>
+                <% else %>
+                  <em>No active plan</em>
+                <% end %>
+              </span>
+            </div>
+            
+            <div class="stat-item">
+              <label>Messages Used This Month:</label>
+              <span><%= number_with_delimiter(@transaction.account.messages_used_this_month) %></span>
+            </div>
+            
+            <div class="stat-item">
+              <label>Message Limit:</label>
+              <span><%= number_with_delimiter(@transaction.account.messages_limit) %></span>
+            </div>
+            
+            <div class="stat-item">
+              <label>Usage Percentage:</label>
+              <span>
+                <div class="usage-bar">
+                  <div class="usage-fill" style="width: <%= @transaction.account.usage_percentage %>%"></div>
+                  <span class="usage-text"><%= @transaction.account.usage_percentage.round(1) %>%</span>
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Plan Information -->
+    <% if @transaction.billing_plan %>
+      <div class="card">
+        <div class="card-header">
+          <h3>Plan Information</h3>
+        </div>
+        <div class="card-body">
+          <div class="plan-details">
+            <div class="plan-header">
+              <h4><%= @transaction.billing_plan.name %></h4>
+              <span class="plan-price"><%= number_to_currency(@transaction.billing_plan.price) %>/<%= @transaction.billing_plan.currency %> month</span>
+            </div>
+            
+            <div class="plan-info-grid">
+              <div class="plan-item">
+                <label>Monthly Message Limit:</label>
+                <span><%= number_with_delimiter(@transaction.billing_plan.monthly_message_limit) %> messages</span>
+              </div>
+              
+              <div class="plan-item">
+                <label>Plan Status:</label>
+                <span class="badge <%= @transaction.billing_plan.active? ? 'success' : 'danger' %>">
+                  <%= @transaction.billing_plan.active? ? 'Active' : 'Inactive' %>
+                </span>
+              </div>
+              
+              <% if @transaction.billing_plan.description.present? %>
+                <div class="plan-item full-width">
+                  <label>Description:</label>
+                  <span><%= @transaction.billing_plan.description %></span>
+                </div>
+              <% end %>
+            </div>
+            
+            <% if @transaction.billing_plan.features.present? %>
+              <div class="plan-features">
+                <h5>Plan Features</h5>
+                <div class="features-list">
+                  <% @transaction.billing_plan.features.each do |key, value| %>
+                    <div class="feature-item">
+                      <span class="feature-key"><%= key.humanize %>:</span>
+                      <span class="feature-value"><%= value %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  
+  <!-- Sidebar -->
+  <div class="medium-4 columns">
+    <!-- Transaction Timeline -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Transaction Timeline</h3>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker created"></div>
+            <div class="timeline-content">
+              <h5>Transaction Created</h5>
+              <p><%= @transaction.created_at.strftime('%B %d, %Y at %I:%M %p') %></p>
+              <small>Initial transaction record created</small>
+            </div>
+          </div>
+          
+          <% if @transaction.status == 'successful' %>
+            <div class="timeline-item">
+              <div class="timeline-marker success"></div>
+              <div class="timeline-content">
+                <h5>Payment Successful</h5>
+                <p><%= @transaction.updated_at.strftime('%B %d, %Y at %I:%M %p') %></p>
+                <small>Payment processed successfully</small>
+              </div>
+            </div>
+          <% elsif @transaction.status == 'failed' %>
+            <div class="timeline-item">
+              <div class="timeline-marker failed"></div>
+              <div class="timeline-content">
+                <h5>Payment Failed</h5>
+                <p><%= @transaction.updated_at.strftime('%B %d, %Y at %I:%M %p') %></p>
+                <% if @transaction.failure_reason.present? %>
+                  <small><%= @transaction.failure_reason %></small>
+                <% else %>
+                  <small>Payment processing failed</small>
+                <% end %>
+              </div>
+            </div>
+          <% else %>
+            <div class="timeline-item">
+              <div class="timeline-marker pending"></div>
+              <div class="timeline-content">
+                <h5>Payment Pending</h5>
+                <p>Awaiting payment confirmation</p>
+                <small>Transaction is being processed</small>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Related Transactions -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Related Transactions</h3>
+      </div>
+      <div class="card-body">
+        <% related_transactions = @transaction.account.billing_transactions.where.not(id: @transaction.id).order(created_at: :desc).limit(5) %>
+        <% if related_transactions.any? %>
+          <div class="related-transactions">
+            <% related_transactions.each do |transaction| %>
+              <div class="related-transaction">
+                <div class="transaction-info">
+                  <span class="transaction-id">#<%= transaction.id %></span>
+                  <span class="transaction-amount"><%= number_to_currency(transaction.amount) %></span>
+                </div>
+                <div class="transaction-meta">
+                  <span class="badge <%= transaction.status %> small">
+                    <%= transaction.status.humanize %>
+                  </span>
+                  <small class="transaction-date"><%= transaction.created_at.strftime('%m/%d/%Y') %></small>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <%= link_to "View All Transactions", super_admin_billing_transactions_path(search: @transaction.account.name), class: "button tiny secondary full-width" %>
+        <% else %>
+          <p class="no-data">No other transactions found for this account.</p>
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Quick Actions</h3>
+      </div>
+      <div class="card-body">
+        <div class="quick-actions">
+          <%= link_to "View Account Details", super_admin_billing_show_path(@transaction.account), class: "button secondary full-width" %>
+          
+          <% if @transaction.billing_plan %>
+            <%= link_to "View Plan Details", super_admin_billing_plan_path(@transaction.billing_plan), class: "button secondary full-width" %>
+          <% end %>
+          
+          <%= link_to "Account Transactions", super_admin_billing_transactions_path(search: @transaction.account.name), class: "button secondary full-width" %>
+          
+          <% if @transaction.status == 'pending' %>
+            <div class="action-divider"></div>
+            <%= link_to "Mark as Successful", super_admin_billing_mark_transaction_successful_path(@transaction), 
+                        method: :patch, 
+                        class: "button success full-width",
+                        confirm: "Mark this transaction as successful? This will update the account's subscription." %>
+            <%= link_to "Mark as Failed", super_admin_billing_mark_transaction_failed_path(@transaction), 
+                        method: :patch, 
+                        class: "button alert full-width",
+                        confirm: "Mark this transaction as failed? This action cannot be undone." %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.transaction-details-grid {
+  space-y: 30px;
+}
+
+.detail-section {
+  margin-bottom: 30px;
+}
+
+.detail-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  border-bottom: 2px solid #007cba;
+  padding-bottom: 5px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-item label {
+  font-weight: bold;
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.detail-item span {
+  color: #333;
+  font-size: 1em;
+}
+
+.transaction-id {
+  font-family: monospace;
+  font-weight: bold;
+  color: #007cba;
+}
+
+.amount {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+.gateway-id {
+  font-family: monospace;
+  color: #666;
+}
+
+.failure-section {
+  border-left: 4px solid #f44336;
+  padding-left: 15px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.failure-reason {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.metadata-container {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.metadata-json {
+  background: none;
+  border: none;
+  margin: 0;
+  font-size: 0.9em;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.account-info h4 {
+  margin: 0;
+  color: #333;
+}
+
+.account-id {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.account-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-item label {
+  font-weight: bold;
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.usage-bar {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #f44336 90%);
+  transition: width 0.3s ease;
+}
+
+.usage-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #333;
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.plan-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.plan-price {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #007cba;
+}
+
+.plan-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.plan-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.plan-item label {
+  font-weight: bold;
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.plan-features h5 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.features-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.feature-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.feature-key {
+  font-weight: bold;
+  color: #666;
+}
+
+.feature-value {
+  color: #333;
+}
+
+.timeline {
+  position: relative;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 25px;
+  padding-left: 45px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #e0e0e0;
+}
+
+.timeline-marker.created {
+  background-color: #007cba;
+}
+
+.timeline-marker.success {
+  background-color: #4CAF50;
+}
+
+.timeline-marker.failed {
+  background-color: #f44336;
+}
+
+.timeline-marker.pending {
+  background-color: #ff9800;
+}
+
+.timeline-content h5 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1em;
+}
+
+.timeline-content p {
+  margin: 0 0 5px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.timeline-content small {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.related-transactions {
+  margin-bottom: 15px;
+}
+
+.related-transaction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.related-transaction:last-child {
+  border-bottom: none;
+}
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-info .transaction-id {
+  font-size: 0.9em;
+}
+
+.transaction-amount {
+  color: #007cba;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.transaction-meta {
+  text-align: right;
+}
+
+.transaction-date {
+  display: block;
+  color: #666;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 10px 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  font-style: italic;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.large {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.badge.small {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.badge.successful {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.failed {
+  background-color: #f44336;
+  color: white;
+}
+
+.badge.pending {
+  background-color: #ff9800;
+  color: white;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+</style>

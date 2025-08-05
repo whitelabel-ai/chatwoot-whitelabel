@@ -1,0 +1,803 @@
+<% content_for :page_title do %>
+  Usage Reports
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Usage Reports</h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Billing", super_admin_billing_index_path, class: "button secondary" %>
+        <%= link_to "Export CSV", super_admin_billing_usage_reports_path(format: :csv, **request.query_parameters), class: "button primary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row">
+  <div class="medium-3 columns">
+    <div class="summary-card primary">
+      <div class="summary-number"><%= number_with_delimiter(@summary[:total_messages]) %></div>
+      <div class="summary-label">Total Messages</div>
+      <div class="summary-period">This Period</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="summary-card success">
+      <div class="summary-number"><%= @summary[:active_accounts] %></div>
+      <div class="summary-label">Active Accounts</div>
+      <div class="summary-period">With Usage</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="summary-card warning">
+      <div class="summary-number"><%= @summary[:accounts_near_limit] %></div>
+      <div class="summary-label">Near Limit</div>
+      <div class="summary-period">>80% Usage</div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="summary-card danger">
+      <div class="summary-number"><%= @summary[:accounts_over_limit] %></div>
+      <div class="summary-label">Over Limit</div>
+      <div class="summary-period">>100% Usage</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Filters & Date Range</h3>
+      </div>
+      <div class="card-body">
+        <%= form_with url: super_admin_billing_usage_reports_path, method: :get, local: true, class: "filters-form" do |form| %>
+          <div class="row">
+            <div class="medium-3 columns">
+              <%= form.label :plan_id, "Plan" %>
+              <%= form.select :plan_id, 
+                              options_for_select([
+                                ['All Plans', '']
+                              ] + @plans.map { |p| [p.name, p.id] }, params[:plan_id]),
+                              {}, { class: 'form-control' } %>
+            </div>
+            <div class="medium-2 columns">
+              <%= form.label :start_date, "Start Date" %>
+              <%= form.date_field :start_date, value: params[:start_date] || 1.month.ago.strftime('%Y-%m-%d'), class: 'form-control' %>
+            </div>
+            <div class="medium-2 columns">
+              <%= form.label :end_date, "End Date" %>
+              <%= form.date_field :end_date, value: params[:end_date] || Date.current.strftime('%Y-%m-%d'), class: 'form-control' %>
+            </div>
+            <div class="medium-2 columns">
+              <%= form.label :usage_threshold, "Usage Threshold" %>
+              <%= form.select :usage_threshold, 
+                              options_for_select([
+                                ['All Accounts', ''],
+                                ['Over 50%', '50'],
+                                ['Over 80%', '80'],
+                                ['Over 100%', '100']
+                              ], params[:usage_threshold]),
+                              {}, { class: 'form-control' } %>
+            </div>
+            <div class="medium-3 columns">
+              <%= form.label :search, "Search Account" %>
+              <%= form.text_field :search, placeholder: "Account name...", value: params[:search], class: 'form-control' %>
+            </div>
+          </div>
+          <div class="row">
+            <div class="medium-12 columns">
+              <div class="filter-actions">
+                <%= form.submit "Apply Filters", class: "button primary" %>
+                <%= link_to "Clear Filters", super_admin_billing_usage_reports_path, class: "button secondary" %>
+                <div class="quick-filters">
+                  <%= link_to "Last 7 Days", super_admin_billing_usage_reports_path(start_date: 7.days.ago.strftime('%Y-%m-%d'), end_date: Date.current.strftime('%Y-%m-%d')), class: "button tiny secondary" %>
+                  <%= link_to "Last 30 Days", super_admin_billing_usage_reports_path(start_date: 30.days.ago.strftime('%Y-%m-%d'), end_date: Date.current.strftime('%Y-%m-%d')), class: "button tiny secondary" %>
+                  <%= link_to "This Month", super_admin_billing_usage_reports_path(start_date: Date.current.beginning_of_month.strftime('%Y-%m-%d'), end_date: Date.current.strftime('%Y-%m-%d')), class: "button tiny secondary" %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Usage Reports Table -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Account Usage Reports (<%= @reports.total_count %>)</h3>
+      </div>
+      <div class="card-body">
+        <% if @reports.any? %>
+          <div class="table-container">
+            <table class="usage-table">
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Plan</th>
+                  <th>Messages Used</th>
+                  <th>Message Limit</th>
+                  <th>Usage %</th>
+                  <th>Status</th>
+                  <th>Daily Avg</th>
+                  <th>Trend</th>
+                  <th>Last Activity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @reports.each do |report| %>
+                  <% account = report[:account] %>
+                  <% usage_percentage = report[:usage_percentage] %>
+                  <% trend = report[:trend] %>
+                  <tr class="usage-row <%= 'over-limit' if usage_percentage > 100 %> <%= 'near-limit' if usage_percentage > 80 && usage_percentage <= 100 %>">
+                    <td>
+                      <div class="account-info">
+                        <strong><%= account.name %></strong>
+                        <small class="account-id">#<%= account.id %></small>
+                      </div>
+                    </td>
+                    <td>
+                      <% if account.current_subscription&.billing_plan %>
+                        <div class="plan-info">
+                          <strong><%= account.current_subscription.billing_plan.name %></strong>
+                          <small class="plan-price"><%= number_to_currency(account.current_subscription.billing_plan.price) %></small>
+                        </div>
+                      <% else %>
+                        <span class="no-plan">No Plan</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <div class="usage-numbers">
+                        <strong class="messages-used"><%= number_with_delimiter(report[:messages_used]) %></strong>
+                        <small class="period-info">in period</small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="message-limit"><%= number_with_delimiter(report[:message_limit]) %></span>
+                    </td>
+                    <td>
+                      <div class="usage-bar-container">
+                        <div class="usage-bar">
+                          <div class="usage-fill" style="width: <%= [usage_percentage, 100].min %>%"></div>
+                          <span class="usage-text"><%= usage_percentage.round(1) %>%</span>
+                        </div>
+                        <% if usage_percentage > 100 %>
+                          <small class="over-limit-text">+<%= (usage_percentage - 100).round(1) %>% over</small>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge <%= account.status == 'active' ? 'success' : 'danger' %>">
+                        <%= account.status.humanize %>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="daily-avg">
+                        <strong><%= number_with_delimiter(report[:daily_average]) %></strong>
+                        <small>msgs/day</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="trend-indicator">
+                        <% if trend > 10 %>
+                          <span class="trend up">↗ +<%= trend.round(1) %>%</span>
+                        <% elsif trend < -10 %>
+                          <span class="trend down">↘ <%= trend.round(1) %>%</span>
+                        <% else %>
+                          <span class="trend stable">→ <%= trend.round(1) %>%</span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="last-activity">
+                        <% if report[:last_message_date] %>
+                          <strong><%= report[:last_message_date].strftime('%m/%d') %></strong>
+                          <small><%= time_ago_in_words(report[:last_message_date]) %> ago</small>
+                        <% else %>
+                          <span class="no-activity">No activity</span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="action-buttons">
+                        <%= link_to "View", super_admin_billing_show_path(account), class: "button tiny secondary" %>
+                        <% if usage_percentage > 100 %>
+                          <%= link_to "Reset", super_admin_billing_reset_usage_path(account), 
+                                      method: :patch, 
+                                      class: "button tiny warning",
+                                      confirm: "Reset monthly usage for this account?" %>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div class="pagination-container">
+            <%= paginate @reports, theme: 'twitter-bootstrap-4' %>
+          </div>
+        <% else %>
+          <div class="empty-state">
+            <h4>No usage data found</h4>
+            <p>No accounts match your current filters or date range.</p>
+            <%= link_to "Clear Filters", super_admin_billing_usage_reports_path, class: "button secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Usage Analytics -->
+<div class="row">
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Usage Distribution by Plan</h3>
+      </div>
+      <div class="card-body">
+        <% plan_usage = @reports.group_by { |r| r[:account].current_subscription&.billing_plan&.name || 'No Plan' } %>
+        <% if plan_usage.any? %>
+          <div class="plan-usage-chart">
+            <% plan_usage.each do |plan_name, accounts| %>
+              <% total_messages = accounts.sum { |a| a[:messages_used] } %>
+              <% avg_usage = accounts.sum { |a| a[:usage_percentage] } / accounts.count %>
+              <div class="plan-usage-item">
+                <div class="plan-usage-header">
+                  <strong><%= plan_name %></strong>
+                  <span class="plan-stats"><%= accounts.count %> accounts</span>
+                </div>
+                <div class="plan-usage-details">
+                  <div class="usage-metric">
+                    <label>Total Messages:</label>
+                    <span><%= number_with_delimiter(total_messages) %></span>
+                  </div>
+                  <div class="usage-metric">
+                    <label>Average Usage:</label>
+                    <span><%= avg_usage.round(1) %>%</span>
+                  </div>
+                  <div class="usage-bar">
+                    <div class="usage-fill" style="width: <%= [avg_usage, 100].min %>%"></div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No usage data available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Top Message Sources</h3>
+      </div>
+      <div class="card-body">
+        <% if @message_sources.any? %>
+          <div class="sources-list">
+            <% @message_sources.each_with_index do |(source, count), index| %>
+              <div class="source-item">
+                <div class="source-rank">#<%= index + 1 %></div>
+                <div class="source-info">
+                  <strong><%= source.humanize %></strong>
+                  <div class="source-stats">
+                    <span class="message-count"><%= number_with_delimiter(count) %> messages</span>
+                    <span class="percentage">(<%= ((count.to_f / @summary[:total_messages]) * 100).round(1) %>%)</span>
+                  </div>
+                </div>
+                <div class="source-bar">
+                  <div class="source-fill" style="width: <%= (count.to_f / @message_sources.first[1] * 100).round(1) %>%"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="no-data">No message source data available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Usage Trend -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Daily Usage Trend</h3>
+      </div>
+      <div class="card-body">
+        <% if @daily_usage.any? %>
+          <div class="chart-container">
+            <canvas id="dailyUsageChart" width="800" height="300"></canvas>
+          </div>
+        <% else %>
+          <p class="no-data">No daily usage data available for the selected period.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+<% if @daily_usage.any? %>
+  document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('dailyUsageChart').getContext('2d');
+    const dailyData = <%= @daily_usage.to_json.html_safe %>;
+    
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: Object.keys(dailyData),
+        datasets: [{
+          label: 'Daily Messages',
+          data: Object.values(dailyData),
+          borderColor: '#007cba',
+          backgroundColor: 'rgba(0, 124, 186, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#007cba',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString() + ' msgs';
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return 'Messages: ' + context.parsed.y.toLocaleString();
+              }
+            }
+          },
+          legend: {
+            display: false
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  });
+<% end %>
+</script>
+
+<style>
+.summary-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  border-left: 4px solid;
+}
+
+.summary-card.primary {
+  border-left-color: #007cba;
+}
+
+.summary-card.success {
+  border-left-color: #4CAF50;
+}
+
+.summary-card.warning {
+  border-left-color: #ff9800;
+}
+
+.summary-card.danger {
+  border-left-color: #f44336;
+}
+
+.summary-number {
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.summary-card.primary .summary-number {
+  color: #007cba;
+}
+
+.summary-card.success .summary-number {
+  color: #4CAF50;
+}
+
+.summary-card.warning .summary-number {
+  color: #ff9800;
+}
+
+.summary-card.danger .summary-number {
+  color: #f44336;
+}
+
+.summary-label {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.summary-period {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.filters-form {
+  margin: 0;
+}
+
+.filter-actions {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.quick-filters {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.usage-table th,
+.usage-table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.usage-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: #666;
+  position: sticky;
+  top: 0;
+}
+
+.usage-row.over-limit {
+  background-color: rgba(244, 67, 54, 0.05);
+}
+
+.usage-row.near-limit {
+  background-color: rgba(255, 152, 0, 0.05);
+}
+
+.account-info strong {
+  display: block;
+  color: #333;
+}
+
+.account-id {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.plan-info strong {
+  display: block;
+  color: #333;
+}
+
+.plan-price {
+  color: #666;
+  font-size: 0.8em;
+}
+
+.no-plan {
+  color: #999;
+  font-style: italic;
+}
+
+.usage-numbers .messages-used {
+  display: block;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.period-info {
+  color: #666;
+  font-size: 0.8em;
+}
+
+.message-limit {
+  color: #333;
+  font-weight: bold;
+}
+
+.usage-bar-container {
+  min-width: 120px;
+}
+
+.usage-bar {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.usage-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #f44336 90%);
+  transition: width 0.3s ease;
+}
+
+.usage-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7em;
+  font-weight: bold;
+  color: #333;
+}
+
+.over-limit-text {
+  color: #f44336;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.daily-avg strong {
+  display: block;
+  color: #333;
+}
+
+.daily-avg small {
+  color: #666;
+  font-size: 0.8em;
+}
+
+.trend {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.trend.up {
+  color: #4CAF50;
+}
+
+.trend.down {
+  color: #f44336;
+}
+
+.trend.stable {
+  color: #666;
+}
+
+.last-activity strong {
+  display: block;
+  color: #333;
+}
+
+.last-activity small {
+  color: #666;
+  font-size: 0.8em;
+}
+
+.no-activity {
+  color: #999;
+  font-style: italic;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.plan-usage-chart {
+  space-y: 20px;
+}
+
+.plan-usage-item {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.plan-usage-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.plan-stats {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.plan-usage-details {
+  space-y: 8px;
+}
+
+.usage-metric {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.usage-metric label {
+  color: #666;
+}
+
+.usage-metric span {
+  font-weight: bold;
+  color: #333;
+}
+
+.sources-list {
+  space-y: 15px;
+}
+
+.source-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.source-rank {
+  width: 30px;
+  height: 30px;
+  background-color: #007cba;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9em;
+  margin-right: 15px;
+}
+
+.source-info {
+  flex: 1;
+  margin-right: 15px;
+}
+
+.source-info strong {
+  display: block;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.source-stats {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.message-count {
+  margin-right: 5px;
+}
+
+.percentage {
+  color: #999;
+}
+
+.source-bar {
+  width: 80px;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.source-fill {
+  height: 100%;
+  background-color: #007cba;
+  transition: width 0.3s ease;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.empty-state,
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+}
+
+.empty-state h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+</style>

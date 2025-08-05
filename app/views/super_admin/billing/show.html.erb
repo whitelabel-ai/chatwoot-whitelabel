@@ -1,0 +1,366 @@
+<% content_for :page_title do %>
+  Billing Details - <%= @account.name %>
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Billing Details - <%= @account.name %></h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Billing", super_admin_billing_index_path, class: "button secondary" %>
+        <%= link_to "Force Renewal", super_admin_billing_force_renewal_path(@account), 
+                    method: :post, class: "button primary", 
+                    confirm: "Are you sure you want to force renewal for this account?" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Account Info -->
+<div class="row">
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Account Information</h3>
+      </div>
+      <div class="card-body">
+        <table class="info-table">
+          <tr>
+            <td><strong>Account ID:</strong></td>
+            <td><%= @account.id %></td>
+          </tr>
+          <tr>
+            <td><strong>Account Name:</strong></td>
+            <td><%= @account.name %></td>
+          </tr>
+          <tr>
+            <td><strong>Domain:</strong></td>
+            <td><%= @account.domain || 'Not set' %></td>
+          </tr>
+          <tr>
+            <td><strong>Status:</strong></td>
+            <td>
+              <span class="badge <%= @account.active? ? 'success' : 'danger' %>">
+                <%= @account.status.humanize %>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Created:</strong></td>
+            <td><%= @account.created_at.strftime('%B %d, %Y') %></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="medium-6 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Current Subscription</h3>
+      </div>
+      <div class="card-body">
+        <table class="info-table">
+          <tr>
+            <td><strong>Plan:</strong></td>
+            <td><%= @subscription.billing_plan.name %></td>
+          </tr>
+          <tr>
+            <td><strong>Price:</strong></td>
+            <td><%= number_to_currency(@subscription.billing_plan.price) %>/month</td>
+          </tr>
+          <tr>
+            <td><strong>Message Limit:</strong></td>
+            <td><%= number_with_delimiter(@subscription.billing_plan.monthly_message_limit) %></td>
+          </tr>
+          <tr>
+            <td><strong>Status:</strong></td>
+            <td>
+              <span class="badge <%= @subscription.active? ? 'success' : 'danger' %>">
+                <%= @subscription.status.humanize %>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Current Period:</strong></td>
+            <td>
+              <%= @subscription.current_period_start.strftime('%m/%d/%Y') %> - 
+              <%= @subscription.current_period_end.strftime('%m/%d/%Y') %>
+            </td>
+          </tr>
+        </table>
+        
+        <div class="subscription-actions">
+          <% if @subscription.active? %>
+            <%= link_to "Suspend Account", super_admin_billing_suspend_account_path(@account), 
+                        method: :post, class: "button warning small", 
+                        confirm: "Are you sure you want to suspend this account?" %>
+          <% else %>
+            <%= link_to "Activate Account", super_admin_billing_activate_account_path(@account), 
+                        method: :post, class: "button success small" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Usage Statistics -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Usage Statistics</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="medium-3 columns text-center">
+            <div class="stat-box">
+              <h4><%= number_with_delimiter(@usage_report[:usage][:messages_used]) %></h4>
+              <p>Messages Used</p>
+            </div>
+          </div>
+          <div class="medium-3 columns text-center">
+            <div class="stat-box">
+              <h4><%= number_with_delimiter(@usage_report[:usage][:messages_remaining]) %></h4>
+              <p>Messages Remaining</p>
+            </div>
+          </div>
+          <div class="medium-3 columns text-center">
+            <div class="stat-box">
+              <h4><%= @usage_report[:usage][:usage_percentage].round(1) %>%</h4>
+              <p>Usage Percentage</p>
+            </div>
+          </div>
+          <div class="medium-3 columns text-center">
+            <div class="stat-box">
+              <h4><%= @subscription.days_until_renewal %></h4>
+              <p>Days Until Renewal</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="usage-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: <%= @usage_report[:usage][:usage_percentage] %>%"></div>
+          </div>
+          <p class="progress-text">
+            <%= @usage_report[:usage][:usage_percentage].round(1) %>% of monthly limit used
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plan Change -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Change Plan</h3>
+      </div>
+      <div class="card-body">
+        <%= form_with url: super_admin_billing_update_account_plan_path(@account), method: :post, local: true do |form| %>
+          <div class="row">
+            <div class="medium-6 columns">
+              <%= form.select :plan_id, 
+                              options_from_collection_for_select(BillingPlan.active.order(:price), :id, :name, @subscription.billing_plan_id),
+                              { prompt: 'Select a plan...' },
+                              { class: 'form-control' } %>
+            </div>
+            <div class="medium-3 columns">
+              <%= form.submit "Update Plan", class: "button primary" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Transactions</h3>
+      </div>
+      <div class="card-body">
+        <% if @transactions.any? %>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Type</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @transactions.each do |transaction| %>
+                <tr>
+                  <td><%= transaction.transaction_id %></td>
+                  <td><%= transaction.transaction_type.humanize %></td>
+                  <td><%= transaction.billing_plan.name %></td>
+                  <td><%= number_to_currency(transaction.amount) %></td>
+                  <td>
+                    <span class="badge <%= transaction.successful? ? 'success' : transaction.failed? ? 'danger' : 'warning' %>">
+                      <%= transaction.status.humanize %>
+                    </span>
+                  </td>
+                  <td><%= transaction.created_at.strftime('%m/%d/%Y %I:%M %p') %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <p class="text-center">No transactions found for this account.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Message Consumption Logs -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Message Consumption</h3>
+      </div>
+      <div class="card-body">
+        <% if @consumption_logs.any? %>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Message Type</th>
+                <th>Source</th>
+                <th>Conversation</th>
+                <th>Remaining After</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @consumption_logs.each do |log| %>
+                <tr>
+                  <td><%= log.consumption_date.strftime('%m/%d/%Y') %></td>
+                  <td><%= log.message_type.humanize %></td>
+                  <td><%= log.source_type&.humanize || 'Unknown' %></td>
+                  <td>#<%= log.conversation.display_id %></td>
+                  <td><%= number_with_delimiter(log.messages_remaining_after) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <p class="text-center">No consumption logs found for this account.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.stat-box {
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-box h4 {
+  font-size: 2em;
+  margin: 0;
+  color: #333;
+}
+
+.stat-box p {
+  margin: 5px 0 0 0;
+  color: #666;
+}
+
+.usage-progress {
+  margin-top: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 30px;
+  background-color: #f0f0f0;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  margin: 0;
+  color: #666;
+}
+
+.subscription-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.badge.warning {
+  background-color: #ff9800;
+  color: white;
+}
+</style>

@@ -64,6 +64,7 @@ class Message < ApplicationRecord
   before_validation :prevent_message_flooding
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
+  after_create_commit :consume_account_message
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
@@ -399,6 +400,36 @@ class Message < ApplicationRecord
     # rubocop:disable Rails/SkipsModelValidations
     conversation.update_columns(last_activity_at: created_at)
     # rubocop:enable Rails/SkipsModelValidations
+  end
+
+  def consume_account_message
+    return unless should_consume_message?
+
+    # Only consume if account can send messages
+    return unless account.can_send_messages?
+
+    # Consume the message from account subscription
+    success = account.consume_message!
+    
+    if success
+      # Log the consumption for auditing
+      remaining_messages = account.messages_remaining
+      MessageConsumptionLog.log_message_consumption(self, remaining_messages)
+      
+      # Check if account is near limit and trigger notifications
+      trigger_limit_notifications if account.near_message_limit?
+    end
+  end
+
+  def should_consume_message?
+    # Only consume for incoming and outgoing messages, not activity messages
+    incoming? || outgoing?
+  end
+
+  def trigger_limit_notifications
+    # This could trigger webhooks, emails, or in-app notifications
+    # For now, we'll just log it
+    Rails.logger.info "Account #{account.id} is near message limit: #{account.usage_percentage}% used"
   end
 end
 

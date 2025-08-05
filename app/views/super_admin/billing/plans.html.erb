@@ -1,0 +1,392 @@
+<% content_for :page_title do %>
+  Billing Plans Management
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Billing Plans Management</h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Back to Billing", super_admin_billing_index_path, class: "button secondary" %>
+        <button class="button primary" onclick="toggleCreateForm()">Create New Plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Plan Form -->
+<div class="row" id="create-plan-form" style="display: none;">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Create New Plan</h3>
+      </div>
+      <div class="card-body">
+        <%= form_with model: @plan, url: super_admin_billing_create_plan_path, local: true do |form| %>
+          <div class="row">
+            <div class="medium-6 columns">
+              <%= form.label :name, "Plan Name" %>
+              <%= form.text_field :name, placeholder: "e.g., Starter Plan", required: true %>
+              <% if @plan.errors[:name].any? %>
+                <small class="error"><%= @plan.errors[:name].first %></small>
+              <% end %>
+            </div>
+            <div class="medium-6 columns">
+              <%= form.label :monthly_message_limit, "Monthly Message Limit" %>
+              <%= form.number_field :monthly_message_limit, placeholder: "e.g., 1000", required: true %>
+              <% if @plan.errors[:monthly_message_limit].any? %>
+                <small class="error"><%= @plan.errors[:monthly_message_limit].first %></small>
+              <% end %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-4 columns">
+              <%= form.label :price, "Price" %>
+              <%= form.number_field :price, step: 0.01, placeholder: "e.g., 29.99", required: true %>
+              <% if @plan.errors[:price].any? %>
+                <small class="error"><%= @plan.errors[:price].first %></small>
+              <% end %>
+            </div>
+            <div class="medium-4 columns">
+              <%= form.label :currency, "Currency" %>
+              <%= form.select :currency, 
+                              options_for_select([['USD', 'USD'], ['EUR', 'EUR'], ['COP', 'COP']], 'USD'),
+                              {}, { class: 'form-control' } %>
+            </div>
+            <div class="medium-4 columns">
+              <%= form.label :payment_link_url, "Payment Link URL (Optional)" %>
+              <%= form.url_field :payment_link_url, placeholder: "https://payment-gateway.com/plan" %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-12 columns">
+              <%= form.label :description, "Description" %>
+              <%= form.text_area :description, rows: 3, placeholder: "Describe the plan features and benefits..." %>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="medium-6 columns">
+              <%= form.label :features, "Features (JSON)" %>
+              <%= form.text_area :features, rows: 4, placeholder: '{"support": "Email", "integrations": 5}' %>
+              <small class="help-text">Enter features as JSON object</small>
+            </div>
+            <div class="medium-6 columns">
+              <div class="checkbox-group">
+                <%= form.check_box :active %>
+                <%= form.label :active, "Active Plan" %>
+                <small class="help-text">Only active plans are available for purchase</small>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <%= form.submit "Create Plan", class: "button primary" %>
+            <button type="button" class="button secondary" onclick="toggleCreateForm()">Cancel</button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Existing Plans -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-header">
+        <h3>Existing Plans</h3>
+      </div>
+      <div class="card-body">
+        <% if @plans.any? %>
+          <div class="plans-grid">
+            <% @plans.each do |plan| %>
+              <div class="plan-card <%= 'inactive' unless plan.active? %>">
+                <div class="plan-header">
+                  <h4><%= plan.name %></h4>
+                  <div class="plan-price">
+                    <%= number_to_currency(plan.price) %>
+                    <span class="period">/<%= plan.currency %> month</span>
+                  </div>
+                </div>
+                
+                <div class="plan-details">
+                  <div class="plan-limit">
+                    <strong><%= number_with_delimiter(plan.monthly_message_limit) %></strong> messages/month
+                  </div>
+                  
+                  <% if plan.description.present? %>
+                    <p class="plan-description"><%= plan.description %></p>
+                  <% end %>
+                  
+                  <% if plan.features.present? %>
+                    <div class="plan-features">
+                      <h5>Features:</h5>
+                      <ul>
+                        <% plan.features.each do |key, value| %>
+                          <li><%= key.humanize %>: <%= value %></li>
+                        <% end %>
+                      </ul>
+                    </div>
+                  <% end %>
+                </div>
+                
+                <div class="plan-stats">
+                  <div class="stat">
+                    <span class="stat-number"><%= plan.accounts.count %></span>
+                    <span class="stat-label">Active Accounts</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-number"><%= number_to_currency(plan.accounts.joins(:billing_transactions).where(billing_transactions: { status: :successful }).sum('billing_transactions.amount')) %></span>
+                    <span class="stat-label">Total Revenue</span>
+                  </div>
+                </div>
+                
+                <div class="plan-status">
+                  <span class="badge <%= plan.active? ? 'success' : 'danger' %>">
+                    <%= plan.active? ? 'Active' : 'Inactive' %>
+                  </span>
+                </div>
+                
+                <div class="plan-actions">
+                  <%= link_to "View Details", super_admin_billing_plan_path(plan), class: "button tiny secondary" %>
+                  <%= link_to "Edit", edit_super_admin_billing_plan_path(plan), class: "button tiny primary" %>
+                  <% if plan.accounts.empty? %>
+                    <%= link_to "Delete", super_admin_billing_plan_path(plan), 
+                                method: :delete, 
+                                class: "button tiny alert",
+                                confirm: "Are you sure you want to delete this plan?" %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="empty-state">
+            <h4>No billing plans found</h4>
+            <p>Create your first billing plan to get started.</p>
+            <button class="button primary" onclick="toggleCreateForm()">Create First Plan</button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleCreateForm() {
+  const form = document.getElementById('create-plan-form');
+  if (form.style.display === 'none') {
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    form.style.display = 'none';
+  }
+}
+</script>
+
+<style>
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.plan-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.plan-card:hover {
+  border-color: #007cba;
+  box-shadow: 0 4px 12px rgba(0, 124, 186, 0.15);
+}
+
+.plan-card.inactive {
+  opacity: 0.6;
+  border-color: #ccc;
+}
+
+.plan-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.plan-header h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.4em;
+  color: #333;
+}
+
+.plan-price {
+  font-size: 2em;
+  font-weight: bold;
+  color: #007cba;
+}
+
+.plan-price .period {
+  font-size: 0.5em;
+  color: #666;
+  font-weight: normal;
+}
+
+.plan-limit {
+  text-align: center;
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.plan-description {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.plan-features {
+  margin-bottom: 20px;
+}
+
+.plan-features h5 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.plan-features ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.plan-features li {
+  margin-bottom: 4px;
+}
+
+.plan-stats {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  padding: 15px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.plan-status {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-state h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.form-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.form-actions .button {
+  margin: 0 10px;
+}
+
+.checkbox-group {
+  margin-top: 20px;
+}
+
+.help-text {
+  color: #666;
+  font-size: 0.85em;
+  margin-top: 5px;
+  display: block;
+}
+
+.error {
+  color: #f44336;
+  font-size: 0.85em;
+  margin-top: 5px;
+  display: block;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+</style>

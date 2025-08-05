@@ -1,0 +1,201 @@
+<% content_for :page_title do %>
+  Billing Management
+<% end %>
+
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="page-top-bar">
+      <h2 class="page-title">Billing Management</h2>
+      <div class="page-top-bar__actions">
+        <%= link_to "Plans", super_admin_billing_plans_path, class: "button secondary" %>
+        <%= link_to "Transactions", super_admin_billing_transactions_path, class: "button secondary" %>
+        <%= link_to "Reports", super_admin_billing_reports_path, class: "button secondary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row">
+  <div class="medium-3 columns">
+    <div class="card">
+      <div class="card-body">
+        <h4><%= @total_accounts %></h4>
+        <p>Total Accounts</p>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="card">
+      <div class="card-body">
+        <h4><%= @active_subscriptions %></h4>
+        <p>Active Subscriptions</p>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="card">
+      <div class="card-body">
+        <h4><%= @suspended_accounts %></h4>
+        <p>Suspended Accounts</p>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    <div class="card">
+      <div class="card-body">
+        <h4><%= number_to_currency(@monthly_revenue) %></h4>
+        <p>Monthly Revenue</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-body">
+        <%= form_with url: super_admin_billing_index_path, method: :get, local: true, class: "search-form" do |form| %>
+          <div class="row">
+            <div class="medium-4 columns">
+              <%= form.text_field :search, placeholder: "Search accounts...", value: params[:search] %>
+            </div>
+            <div class="medium-3 columns">
+              <%= form.select :status, options_for_select([
+                ['All Statuses', ''],
+                ['Active', 'active'],
+                ['Suspended', 'suspended'],
+                ['Expired', 'expired']
+              ], params[:status]), {}, { class: "form-control" } %>
+            </div>
+            <div class="medium-2 columns">
+              <%= form.submit "Filter", class: "button primary" %>
+            </div>
+            <div class="medium-3 columns">
+              <%= link_to "Reset Monthly Usage", super_admin_billing_reset_monthly_usage_path, 
+                          method: :post, 
+                          class: "button warning",
+                          confirm: "Are you sure? This will reset usage for all accounts." %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Accounts Table -->
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="card">
+      <div class="card-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Plan</th>
+              <th>Messages Used</th>
+              <th>Status</th>
+              <th>Last Payment</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @accounts.each do |account| %>
+              <tr>
+                <td>
+                  <strong><%= account.name %></strong><br>
+                  <small>ID: <%= account.id %></small>
+                </td>
+                <td>
+                  <%= account.current_plan.name %><br>
+                  <small><%= number_to_currency(account.current_plan.price) %>/month</small>
+                </td>
+                <td>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: <%= account.usage_percentage %>%"></div>
+                  </div>
+                  <%= account.messages_used_this_month %> / <%= account.messages_limit %>
+                  (<%= account.usage_percentage.round(1) %>%)
+                </td>
+                <td>
+                  <span class="badge <%= account.billing_status == 'active' ? 'success' : 'danger' %>">
+                    <%= account.billing_status.humanize %>
+                  </span>
+                </td>
+                <td>
+                  <% last_transaction = account.billing_transactions.successful.last %>
+                  <% if last_transaction %>
+                    <%= time_ago_in_words(last_transaction.created_at) %> ago<br>
+                    <small><%= number_to_currency(last_transaction.amount) %></small>
+                  <% else %>
+                    Never
+                  <% end %>
+                </td>
+                <td>
+                  <%= link_to "View", super_admin_billing_account_path(account), class: "button tiny secondary" %>
+                  <% if account.billing_status == 'suspended' %>
+                    <%= link_to "Activate", super_admin_billing_activate_account_path(account), 
+                                method: :post, class: "button tiny success" %>
+                  <% else %>
+                    <%= link_to "Suspend", super_admin_billing_suspend_account_path(account), 
+                                method: :post, class: "button tiny warning", 
+                                confirm: "Are you sure you want to suspend this account?" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        
+        <%= paginate @accounts if respond_to?(:paginate) %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  transition: width 0.3s ease;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badge.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.badge.danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.card-body {
+  padding: 20px;
+}
+</style>

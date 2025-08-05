@@ -344,3 +344,30 @@ es:
 
       Transcript:
       %{format_messages}
+  billing:
+    plan:
+      created: 'Plan de facturación creado exitosamente'
+      updated: 'Plan de facturación actualizado exitosamente'
+      deleted: 'Plan de facturación eliminado exitosamente'
+      not_found: 'Plan de facturación no encontrado'
+    subscription:
+      created: 'Suscripción creada exitosamente'
+      updated: 'Suscripción actualizada exitosamente'
+      suspended: 'Cuenta suspendida por créditos insuficientes'
+      activated: 'Cuenta activada exitosamente'
+      limit_exceeded: 'Límite de mensajes excedido para el plan actual'
+      not_found: 'Suscripción no encontrada'
+    transaction:
+      created: 'Transacción creada exitosamente'
+      payment_successful: 'Pago procesado exitosamente'
+      payment_failed: 'Error al procesar el pago'
+      not_found: 'Transacción no encontrada'
+    message:
+      consumption_logged: 'Consumo de mensaje registrado'
+      limit_reached: 'Límite mensual de mensajes alcanzado'
+      account_suspended: 'Cuenta suspendida - actualiza el plan para continuar'
+    errors:
+      invalid_plan: 'Plan de facturación inválido'
+      insufficient_credits: 'Créditos de mensajes insuficientes'
+      payment_gateway_error: 'Error en la pasarela de pagos'
+      plan_upgrade_failed: 'Error al actualizar el plan'
