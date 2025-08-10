@@ -58,8 +58,19 @@ jobs:
             SERVICE_NAME="crm_chatwoot_whitelabel_app"
 
             echo "Updating service ${SERVICE_NAME} to image ${IMAGE}..."
-            docker service update --image ${IMAGE} ${SERVICE_NAME} || \
-            echo "Service update failed, redeploy stack manually..."
+            # Actualiza APP
+            if ! docker service update --image ${IMAGE} crm_chatwoot_whitelabel_app; then
+              echo "Service update failed for APP, redeploy stack manually..."
+              exit 1
+            fi
+
+            # Actualiza SIDEKIQ
+            if ! docker service update --image ${IMAGE} crm_chatwoot_whitelabel_sidekiq; then
+              echo "Service update failed for SIDEKIQ, redeploy stack manually..."
+              exit 1
+            fi
+
+
 
 
             echo "Deploy finished."
