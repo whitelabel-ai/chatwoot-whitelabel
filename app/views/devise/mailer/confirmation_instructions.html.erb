@@ -1,29 +1,84 @@
-<p>Hi <%= @resource.name %>,</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Confirmación de cuenta</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, sans-serif; color:#333;">
+  <table align="center" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px; background-color:#ffffff; margin:40px auto; border-radius:10px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+    <tr>
+      <td align="center" style="background-color:#1f3c88; padding:30px;">
+        <% if global_config['LOGO'].present? %>
+          <img src="<%= global_config['LOGO'] %>" alt="<%= global_config['BRAND_NAME'] || 'Whitelabel' %> Logo" style="max-width:150px;">
+        <% else %>
+          <h1 style="color:#ffffff; margin:0; font-size:24px; font-weight:bold;">
+            <%= global_config['BRAND_NAME'] || 'Whitelabel' %>
+          </h1>
+        <% end %>
+      </td>
+    </tr>
 
-<% account_user = @resource&.account_users&.first %>
+    <tr>
+      <td style="padding:30px;">
+        <p style="font-size:18px; margin-bottom:20px;">Hi <strong><%= @resource.name %></strong>,</p>
 
-<% if account_user&.inviter.present? && @resource.unconfirmed_email.blank? %>
-  <p><%= account_user.inviter.name %>, with <%= account_user.account.name %>, has invited you to try out <%= global_config['BRAND_NAME'] || 'Chatwoot' %>.</p>
-<% end %>
+        <% account_user = @resource&.account_users&.first %>
 
-<% if @resource.confirmed? %>
-  <p>You can login to your <%= global_config['BRAND_NAME'] || 'Chatwoot' %> account through the link below:</p>
-<% else %>
-  <% if account_user&.inviter.blank? %>
-  <p>
-    Welcome to <%= global_config['BRAND_NAME'] || 'Chatwoot' %>! We have a suite of powerful tools ready for you to explore. Before that we quickly need to verify your email address to know it's really you.
-  </p>
-  <% end %>
-  <p>Please take a moment and click the link below and activate your account.</p>
-<% end %>
+        <% if account_user&.inviter.present? && @resource.unconfirmed_email.blank? %>
+          <p style="font-size:16px; line-height:1.6; margin-bottom:20px;">
+            <strong><%= account_user.inviter.name %></strong>, with <strong><%= account_user.account.name %></strong>, has invited you to try out <strong><%= global_config['BRAND_NAME'] || 'Whitelabel' %></strong>.
+          </p>
+        <% end %>
 
+        <% if @resource.confirmed? %>
+          <p style="font-size:16px; line-height:1.6;">You can log in to your <%= global_config['BRAND_NAME'] || 'Whitelabel' %> account using the button below:</p>
+        <% else %>
+          <% if account_user&.inviter.blank? %>
+            <p style="font-size:16px; line-height:1.6;">
+              Welcome to <strong><%= global_config['BRAND_NAME'] || 'Whitelabel' %></strong>!  
+              We have a suite of powerful tools ready for you.  
+              Before we begin, please verify your email address to confirm it's really you.
+            </p>
+          <% end %>
+          <p style="font-size:16px; line-height:1.6;">Please click the button below to activate your account:</p>
+        <% end %>
 
-<% if @resource.unconfirmed_email.present? %>
-  <p><%= link_to 'Confirm my account', frontend_url('auth/confirmation', confirmation_token: @token) %></p>
-<% elsif @resource.confirmed? %>
-  <p><%= link_to 'Login to my account', frontend_url('auth/sign_in') %></p>
-<% elsif account_user&.inviter.present? %>
-  <p><%= link_to 'Confirm my account', frontend_url('auth/password/edit', reset_password_token: @resource.send(:set_reset_password_token)) %></p>
-<% else %>
-  <p><%= link_to 'Confirm my account', frontend_url('auth/confirmation', confirmation_token: @token) %></p>
-<% end %>
+        <div style="text-align:center; margin:30px 0;">
+          <% if @resource.unconfirmed_email.present? %>
+            <a href="<%= frontend_url('auth/confirmation', confirmation_token: @token) %>"
+               style="background-color:#1f3c88; color:#ffffff; padding:12px 30px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">
+              Confirm my account
+            </a>
+          <% elsif @resource.confirmed? %>
+            <a href="<%= frontend_url('auth/sign_in') %>"
+               style="background-color:#1f3c88; color:#ffffff; padding:12px 30px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">
+              Login to my account
+            </a>
+          <% elsif account_user&.inviter.present? %>
+            <a href="<%= frontend_url('auth/password/edit', reset_password_token: @resource.send(:set_reset_password_token)) %>"
+               style="background-color:#1f3c88; color:#ffffff; padding:12px 30px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">
+              Confirm my account
+            </a>
+          <% else %>
+            <a href="<%= frontend_url('auth/confirmation', confirmation_token: @token) %>"
+               style="background-color:#1f3c88; color:#ffffff; padding:12px 30px; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">
+              Confirm my account
+            </a>
+          <% end %>
+        </div>
+
+        <p style="font-size:14px; color:#888; text-align:center; line-height:1.4;">
+          If you didn’t request this, please ignore this email.  
+          This link will expire in 24 hours for security reasons.
+        </p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center" style="background-color:#f4f6f8; padding:20px; font-size:12px; color:#999;">
+        © <%= Time.now.year %> <%= global_config['BRAND_NAME'] || 'Whitelabel' %>. All rights reserved.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
