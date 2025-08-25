@@ -94,5 +94,8 @@ yarn-debug.log*
 .vscode
 .claude/settings.local.json
 .cursor
+
+# otros
 docker-compose.crm.yml
+docker-compose-original.yml
 CLAUDE.local.md

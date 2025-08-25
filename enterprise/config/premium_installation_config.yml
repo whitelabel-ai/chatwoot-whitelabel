@@ -1,6 +1,6 @@
 # ------- Branding Related Config ------- #
 - name: INSTALLATION_NAME
-  value: 'Chatwoot'
+  value: 'Whitelabel'
 - name: LOGO_THUMBNAIL
   value: '/brand-assets/logo_thumbnail.svg'
 - name: LOGO
@@ -8,15 +8,15 @@
 - name: LOGO_DARK
   value: '/brand-assets/logo_dark.svg'
 - name: BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://www.whitelabel.lat'
 - name: WIDGET_BRAND_URL
-  value: 'https://www.chatwoot.com'
+  value: 'https://www.whitelabel.lat'
 - name: BRAND_NAME
-  value: 'Chatwoot'
+  value: 'Whitelabel'
 - name: TERMS_URL
-  value: 'https://www.chatwoot.com/terms-of-service'
+  value: 'https://www.whitelabel.lat/terms-of-service'
 - name: PRIVACY_URL
-  value: 'https://www.chatwoot.com/privacy-policy'
+  value: 'https://www.whitelabel.lat/privacy-policy'
 - name: DISPLAY_MANIFEST
   value: true
 # ------- End of Branding Related Config ------- #
