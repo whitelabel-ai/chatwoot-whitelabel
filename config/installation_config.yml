@@ -42,6 +42,18 @@
   value: 'Whitelabel'
   display_title: 'Brand Name'
   description: 'The name that would be used in emails and the widget'
+- name: BRAND_LOGO_URL
+  value: 'https://whitelabel.lat/assets/img/logo/logo-dark.png'
+  display_title: 'Brand Logo URL'
+  description: 'The URL of your brand logo that will be displayed in emails (recommended size: 180x60px)'
+- name: SUPPORT_EMAIL
+  value: 'hola@whitelabel.lat'
+  display_title: 'Support Email'
+  description: 'The support email address that will be displayed in emails'
+- name: COMPANY_ADDRESS
+  value: ''
+  display_title: 'Company Address'
+  description: 'Your company address that will be displayed in email footers'
 - name: TERMS_URL
   value: 'https://www.whitelabel.lat/terms-of-service'
   display_title: 'Terms URL'

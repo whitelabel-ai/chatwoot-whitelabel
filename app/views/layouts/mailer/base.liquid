@@ -18,7 +18,46 @@
       }
 
       body {
-        background-color: #F8FAFC;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .email-container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      .logo {
+        max-width: 180px;
+        height: auto;
+        margin-bottom: 10px;
+      }
+
+      .brand-name {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .content-section {
+        padding: 40px 30px;
+        background-color: #ffffff;
+      }
+
+      .footer-section {
+        background-color: #f8f9fa;
+        padding: 20px 30px;
+        text-align: center;
+        border-top: 1px solid #e9ecef;
       }
 
       @media only screen and (max-width: 640px) {
@@ -58,34 +97,43 @@
     </style>
   </head>
 
-  <body itemscope itemtype="http://schema.org/EmailMessage" style="font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; width: 100% !important; height: 100%; line-height: 1.6em; background-color: #F8FAFC; margin: 0;" bgcolor="#F8FAFC">
-    <table class="body-wrap" style="width: 100%; background-color: #F8FAFC; margin: 0;" bgcolor="#F8FAFC">
+  <body itemscope itemtype="http://schema.org/EmailMessage" style="font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,Helvetica,Arial,sans-serif; box-sizing: border-box; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; width: 100% !important; height: 100%; line-height: 1.6em; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 20px 0;">
+    <table class="body-wrap" style="width: 100%; margin: 0;">
       <tr style="margin: 0;">
         <td class="container" width="600" style="display: block !important; max-width: 600px !important; clear: both !important; margin: 0 auto;" valign="top">
-          <div class="content" style="display: block; margin: 0 auto; padding: 20px; text-align:center;">
-            <table class="main" width="100%" cellpadding="0" cellspacing="0" itemprop="action" itemscope itemtype="http://schema.org/ConfirmAction" style="border-radius: 6px;  background-color: #fff; text-align:left; margin: 0; border: 1px solid #e9e9e9; border-top:3px solid #0080f8;" bgcolor="#fff">
-              <tr style="margin: 0;">
-                <td class="content-wrap" style="vertical-align: top; margin: 0; padding: 20px; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" valign="top">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0;">
-                    {{ content_for_layout }}
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </div>
-          <div class="footer" style="color: #93AFC8; margin: 0; padding: 0 20px 40px; text-align: center">
-            <table width="100%" style="margin: 0;">
-              <tr style="margin: 0;">
-                {% if global_config['BRAND_NAME'] != '' %}
-                  <td class="content-block" style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                    Powered by
-                    <a href="{{ global_config['BRAND_URL'] }}" style="vertical-align: top; color: #93AFC8; text-align: center; margin: 0; padding: 0 0 20px;" align="center" valign="top">
-                      {{ global_config['BRAND_NAME'] }}
+          <div class="email-container">
+            <!-- Header Section -->
+            <div class="header-section">
+              {% if global_config['BRAND_LOGO_URL'] %}
+                <img src="{{ global_config['BRAND_LOGO_URL'] }}" alt="{{ global_config['BRAND_NAME'] }}" class="logo" />
+              {% endif %}
+              {% if global_config['BRAND_NAME'] %}
+                <h1 class="brand-name">{{ global_config['BRAND_NAME'] }}</h1>
+              {% endif %}
+            </div>
+            
+            <!-- Content Section -->
+            <div class="content-section">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0;">
+                {{ content_for_layout }}
+              </table>
+            </div>
+            
+            <!-- Footer Section -->
+            <div class="footer-section">
+              {% if global_config['BRAND_NAME'] %}
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">
+                  © {{ 'now' | date: '%Y' }} {{ global_config['BRAND_NAME'] }}. Todos los derechos reservados.
+                </p>
+                {% if global_config['BRAND_URL'] %}
+                  <p style="margin: 10px 0 0 0;">
+                    <a href="{{ global_config['BRAND_URL'] }}" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                      Visitar nuestro sitio web
                     </a>
-                  </td>
+                  </p>
                 {% endif %}
-              </tr>
-            </table>
+              {% endif %}
+            </div>
           </div>
         </td>
       </tr>

@@ -1,50 +1,65 @@
-<% @messages.each do |message| %>
+<% @messages.each_with_index do |message, index| %>
   <tr>
-    <td>
-      <b><%= message.sender&.try(:available_name) || message.sender&.name || '' %></b>
-      <% if message.conversation.inbox&.inbox_type == 'Email' %>
-        <div style="font-size: 90%; color: #899096; line-height: 16px">
-          <% if message.content_attributes.dig(:email, :from).present? %>
-            <div>From: <%= message.content_attributes.dig(:email, :from).join(", ") %></div>
-          <% else %>
-            <div>From: <%= message.sender&.try(:email) %></div>
+    <td style="padding: 0; margin: 0;">
+      <div style="margin-bottom: 20px; <%= index == 0 ? 'margin-top: 10px;' : '' %>">
+        <!-- Message Header -->
+        <div style="margin-bottom: 8px;">
+          <span style="display: inline-block; padding: 6px 12px; background-color: <%= message.incoming? ? '#e3f2fd' : '#667eea' %>; color: <%= message.incoming? ? '#1976d2' : '#ffffff' %>; border-radius: 15px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <%= message.incoming? ? '👤 Tú' : "🎧 #{message.sender&.try(:available_name) || message.sender&.name || 'Agente'}" %>
+          </span>
+          <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <%= message.created_at.strftime('%d/%m/%Y %H:%M') %>
+          </span>
+        </div>
+        
+        <% if message.conversation.inbox&.inbox_type == 'Email' %>
+          <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #6c757d;">
+            <div style="font-size: 12px; color: #6c757d; line-height: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <% if message.content_attributes.dig(:email, :from).present? %>
+                <div style="margin-bottom: 4px;"><strong>De:</strong> <%= message.content_attributes.dig(:email, :from).join(", ") %></div>
+              <% else %>
+                <div style="margin-bottom: 4px;"><strong>De:</strong> <%= message.sender&.try(:email) %></div>
+              <% end %>
+              <% if message.content_attributes.dig(:email, :subject).present? %>
+                <div style="margin-bottom: 4px;"><strong>Asunto:</strong> <%= message.content_attributes.dig(:email, :subject) %></div>
+              <% end %>
+              <% if message.content_attributes[:to_emails].present? %>
+                <div style="margin-bottom: 4px;"><strong>Para:</strong> <%= message.content_attributes[:to_emails].join(", ") %></div>
+              <% end %>
+              <% if message.content_attributes[:cc_emails].present? %>
+                <div style="margin-bottom: 4px;"><strong>CC:</strong> <%= message.content_attributes[:cc_emails].join(", ") %></div>
+              <% end %>
+              <% if message.content_attributes[:bcc_emails].present? %>
+                <div><strong>BCC:</strong> <%= message.content_attributes[:bcc_emails].join(", ") %></div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- Message Content -->
+        <div style="background: <%= message.incoming? ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' %>; padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5;">
+          <% if message.content %>
+            <div style="color: <%= message.incoming? ? '#495057' : '#ffffff' %>; font-size: 15px;">
+              <%= ChatwootMarkdownRenderer.new(message.content).render_message %>
+            </div>
           <% end %>
-
-          <% if message.content_attributes.dig(:email, :subject).present? %>
-            <div>Subject: <%= message.content_attributes.dig(:email, :subject) %></div>
-          <% end %>
-
-          <% if message.content_attributes[:to_emails].present? %>
-            <div>To: <%= message.content_attributes[:to_emails].join(", ") %></div>
-          <% end %>
-          <% if message.content_attributes[:cc_emails].present? %>
-            <div>CC: <%= message.content_attributes[:cc_emails].join(", ") %></div>
-          <% end %>
-          <% if message.content_attributes[:bcc_emails].present? %>
-            <div>BCC: <%= message.content_attributes[:bcc_emails].join(", ") %></div>
+          
+          <% if message.attachments.present? %>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid <%= message.incoming? ? '#dee2e6' : 'rgba(255, 255, 255, 0.3)' %>;">
+              <p style="margin: 0 0 10px 0; color: <%= message.incoming? ? '#6c757d' : 'rgba(255, 255, 255, 0.9)' %>; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                📎 Archivos adjuntos:
+              </p>
+              <% message.attachments.each_with_index do |attachment, attachment_index| %>
+                <div style="<%= attachment_index > 0 ? 'margin-top: 8px;' : '' %>">
+                  <a href="<%= attachment.file_url %>" target="_blank" style="display: inline-block; background-color: <%= message.incoming? ? '#ffffff' : 'rgba(255, 255, 255, 0.2)' %>; color: <%= message.incoming? ? '#667eea' : '#ffffff' %>; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid <%= message.incoming? ? '#dee2e6' : 'rgba(255, 255, 255, 0.3)' %>;">
+                    📄 <%= attachment.file.filename.to_s %>
+                  </a>
+                </div>
+              <% end %>
+            </div>
           <% end %>
         </div>
-      <% end %>
-    </td>
-  </tr>
-  <tr>
-    <td style="padding-bottom: 32px;">
-      <% if message.content %>
-        <%= ChatwootMarkdownRenderer.new(message.content).render_message %>
-      <% end %>
-      <% if message.attachments.present? %>
-        <p>Attachments:</p>
-        <% message.attachments.each do |attachment| %>
-          <p><a href="<%= attachment.file_url %>" target="_blank"><%= attachment.file.filename.to_s %></a></p>
-        <% end %>
-      <% end %>
-      <p style="font-size: 90%; font-size: 90%;color: #899096;margin-top: -8px; margin-bottom: 0px;">
-      <% if @inbox.timezone.present? %>
-        <%= message.created_at.in_time_zone(@inbox.timezone).strftime('%b %d, %I:%M %p %Z') %>
-      <% else %>
-        <%= message.created_at.strftime('%b %d, %I:%M %p %Z') %>
-      <% end %>
-      </p>
+      </div>
     </td>
   </tr>
 <% end %>

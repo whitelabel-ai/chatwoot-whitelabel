@@ -12,7 +12,37 @@ class ApplicationMailer < ActionMailer::Base
   helper :frontend_urls
   helper do
     def global_config
-      @global_config ||= GlobalConfig.get('BRAND_NAME', 'BRAND_URL')
+      @global_config ||= GlobalConfig.get(
+        'BRAND_NAME',
+        'BRAND_URL',
+        'BRAND_LOGO_URL',
+        'SUPPORT_EMAIL',
+        'COMPANY_ADDRESS'
+      )
+    end
+
+    def brand_name
+      global_config['BRAND_NAME'].presence || 'Whitelabel'
+    end
+
+    def brand_url
+      global_config['BRAND_URL'].presence || 'https://www.whitelabel.lat'
+    end
+
+    def brand_logo_url
+      global_config['BRAND_LOGO_URL'].presence || nil
+    end
+
+    def support_email
+      global_config['SUPPORT_EMAIL'].presence || ENV.fetch('MAILER_SENDER_EMAIL', 'hola@whitelabel.lat')
+    end
+
+    def format_email_content(content)
+      return '' if content.blank?
+
+      # Sanitize and format content for email
+      sanitized_content = sanitize(content, tags: %w[p br strong em ul ol li h1 h2 h3 h4 h5 h6 a], attributes: %w[href target])
+      sanitized_content.html_safe
     end
   end
 

@@ -1,9 +1,39 @@
-<% if @message.content %>
-  <%= ChatwootMarkdownRenderer.new(@message.outgoing_content).render_message %>
-<% end %>
-<% if @large_attachments.present? %>
-  <p>Attachments:</p>
-  <% @large_attachments.each do |attachment| %>
-    <p><a href="<%= attachment.file_url %>" target="_blank"><%= attachment.file.filename.to_s %></a></p>
-  <% end %>
-<% end %>
+<tr>
+  <td style="padding: 0; margin: 0;">
+    <div style="margin-bottom: 20px; margin-top: 10px;">
+      <!-- Message Header -->
+      <div style="margin-bottom: 8px;">
+        <span style="display: inline-block; padding: 6px 12px; background-color: #667eea; color: #ffffff; border-radius: 15px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          🎧 <%= @message.sender&.available_name || @message.sender&.name || 'Agente' %>
+        </span>
+        <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <%= @message.created_at.strftime('%d/%m/%Y %H:%M') %>
+        </span>
+      </div>
+      
+      <!-- Message Content -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5;">
+        <% if @message.content %>
+          <div style="color: #ffffff; font-size: 15px;">
+            <%= ChatwootMarkdownRenderer.new(@message.outgoing_content).render_message %>
+          </div>
+        <% end %>
+        
+        <% if @large_attachments.present? %>
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+            <p style="margin: 0 0 10px 0; color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              📎 Archivos adjuntos:
+            </p>
+            <% @large_attachments.each_with_index do |attachment, attachment_index| %>
+              <div style="<%= attachment_index > 0 ? 'margin-top: 8px;' : '' %>">
+                <a href="<%= attachment.file_url %>" target="_blank" style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.3);">
+                  📄 <%= attachment.file.filename.to_s %>
+                </a>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </td>
+</tr>
