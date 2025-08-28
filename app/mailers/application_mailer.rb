@@ -41,8 +41,7 @@ class ApplicationMailer < ActionMailer::Base
       return '' if content.blank?
 
       # Sanitize and format content for email
-      sanitized_content = sanitize(content, tags: %w[p br strong em ul ol li h1 h2 h3 h4 h5 h6 a], attributes: %w[href target])
-      sanitized_content.html_safe
+      sanitize(content, tags: %w[p br strong em ul ol li h1 h2 h3 h4 h5 h6 a], attributes: %w[href target])
     end
   end
 
