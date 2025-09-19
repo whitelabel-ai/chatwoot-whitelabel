@@ -96,8 +96,8 @@ yarn-debug.log*
 .cursor
 
 # otros
-docker-compose.crm.yml
-docker-compose-original.yml
+docker-compose.crm.yaml
+docker-compose-original.yaml
 CLAUDE.local.md
 
 # Histoire deployment
