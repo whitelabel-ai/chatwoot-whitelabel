@@ -31,13 +31,13 @@
   display_title: 'Logo Dark Mode'
   description: 'The logo that would be used on the dashboard, login page etc. for dark mode'
 - name: BRAND_URL
-  value: 'https://www.whitelabel.lat'
+  value: 'https://whitelabel.lat'
   display_title: 'Brand URL'
-  description: 'The URL that would be used in emails under the section “Powered By”'
+  description: 'The URL that would be used in emails under the section "Powered By"'By”'
 - name: WIDGET_BRAND_URL
-  value: 'https://www.whitelabel.lat'
+  value: 'https://whitelabel.lat'
   display_title: 'Widget Brand URL'
-  description: 'The URL that would be used in the widget under the section “Powered By”'
+  description: 'The URL that would be used in the widget under the section "Powered By"'By”'
 - name: BRAND_NAME
   value: 'Whitelabel'
   display_title: 'Brand Name'
@@ -55,11 +55,11 @@
   display_title: 'Company Address'
   description: 'Your company address that will be displayed in email footers'
 - name: TERMS_URL
-  value: 'https://www.whitelabel.lat/terms-of-service'
+  value: 'https://whitelabel.lat/terms'
   display_title: 'Terms URL'
   description: 'The terms of service URL displayed in Signup Page'
 - name: PRIVACY_URL
-  value: 'https://www.whitelabel.lat/privacy-policy'
+  value: 'https://whitelabel.lat/privacy'
   display_title: 'Privacy URL'
   description: 'The privacy policy URL displayed in the app'
 - name: DISPLAY_MANIFEST
@@ -72,7 +72,7 @@
 # ------- Signup & Account Related Config ------- #
 - name: ENABLE_ACCOUNT_SIGNUP
   display_title: 'Enable Account Signup'
-  value: false
+  value: true
   description: 'Allow users to signup for new accounts'
   locked: false
   type: boolean
@@ -93,7 +93,7 @@
   locked: false
 - name: DIRECT_UPLOADS_ENABLED
   type: boolean
-  value: false
+  value: true
   description: 'Enable direct uploads to cloud storage'
   locked: false
 # ------- End of Account Related Config ------- #
@@ -158,7 +158,7 @@
 - name: WHATSAPP_API_VERSION
   display_title: 'WhatsApp API Version'
   description: 'Configure this if you want to use a different WhatsApp API version. Make sure its prefixed with `v`'
-  value: 'v22.0'
+  value: 'v23.0'
   locked: false
 # ------- End of WhatsApp Channel Related Config ------- #
 
@@ -226,7 +226,7 @@
   value:
   description: 'Config to features and their associated plans'
 - name: DEPLOYMENT_ENV
-  value: self-hosted
+  value: cloud
   description: 'The deployment environment of the installation, to differentiate between Whitelabel cloud and self-hosted'
 - name: ANALYTICS_TOKEN
   value:
@@ -257,10 +257,10 @@
 
 # ------- Whitelabel Internal Config for Self Hosted ----#
 - name: INSTALLATION_PRICING_PLAN
-  value: 'community'
+  value: 'hacker'
   description: 'The pricing plan for the installation, retrieved from the billing API'
 - name: INSTALLATION_PRICING_PLAN_QUANTITY
-  value: 0
+  value: 2
   description: 'The number of licenses purchased for the installation, retrieved from the billing API'
 - name: CHATWOOT_SUPPORT_WEBSITE_TOKEN
   value:
