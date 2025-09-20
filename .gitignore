@@ -99,6 +99,7 @@ yarn-debug.log*
 docker-compose.crm.yaml
 docker-compose-original.yaml
 CLAUDE.local.md
+COMANDOS_CHATWOOT.md
 
 # Histoire deployment
 .netlify

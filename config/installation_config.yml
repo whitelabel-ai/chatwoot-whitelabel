@@ -260,7 +260,7 @@
   value: 'hacker'
   description: 'The pricing plan for the installation, retrieved from the billing API'
 - name: INSTALLATION_PRICING_PLAN_QUANTITY
-  value: 2
+  value: 0
   description: 'The number of licenses purchased for the installation, retrieved from the billing API'
 - name: CHATWOOT_SUPPORT_WEBSITE_TOKEN
   value:
