@@ -59,7 +59,7 @@ class Enterprise::Billing::HandleStripeEventService
         plan_name: plan['name'],
         subscribed_quantity: subscription['quantity'],
         subscription_status: subscription['status'],
-        subscription_ends_on: Time.zone.at(subscription['current_period_end'])
+        subscription_ends_on: get_current_period_end(subscription)
       }
     )
   end
@@ -150,5 +150,16 @@ class Enterprise::Billing::HandleStripeEventService
 
     # Enable each feature
     account.enable_features(*features) if features.present?
+  end
+
+  def get_current_period_end(subscription)
+    # Try the new structure first (items.data[0].current_period_end)
+    period_end = subscription.dig('items', 'data', 0, 'current_period_end')
+
+    # Fallback to the original structure (subscription.current_period_end)
+    period_end ||= subscription['current_period_end']
+
+    # Convert to Time if present, otherwise return nil
+    period_end ? Time.zone.at(period_end) : nil
   end
 end

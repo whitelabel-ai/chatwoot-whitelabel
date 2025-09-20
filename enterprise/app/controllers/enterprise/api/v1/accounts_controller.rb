@@ -63,8 +63,14 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
 
   def default_limits
     {
-      'conversation' => {},
-      'non_web_inboxes' => {},
+      'conversation' => {
+        'allowed' => @account.usage_limits[:conversations],
+        'consumed' => conversations_this_month(@account)
+      },
+      'non_web_inboxes' => {
+        'allowed' => @account.usage_limits[:inboxes],
+        'consumed' => non_web_inboxes(@account)
+      },
       'agents' => {
         'allowed' => @account.usage_limits[:agents],
         'consumed' => agents(@account)

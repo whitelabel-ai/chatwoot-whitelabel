@@ -8,6 +8,7 @@ module Enterprise::Account::PlanUsageAndLimits
     {
       agents: agent_limits.to_i,
       inboxes: get_limits(:inboxes).to_i,
+      conversations: conversation_limits.to_i,
       captain: {
         documents: get_captain_limits(:documents),
         responses: get_captain_limits(:responses)
@@ -109,6 +110,28 @@ module Enterprise::Account::PlanUsageAndLimits
     ChatwootApp.max_limit
   end
 
+  def conversation_limits
+    # First check if there's a specific limit set for this account
+    return self[:limits]['conversations'] if self[:limits]['conversations'].present?
+
+    # Then check if there's a plan-based limit configured
+    plan_limits = plan_conversation_limit
+    return plan_limits if plan_limits.present?
+
+    # Default to max limit if no specific limit is configured
+    ChatwootApp.max_limit
+  end
+
+  def plan_conversation_limit
+    return nil if plan_name.blank?
+
+    cloud_plans = InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLANS')&.value
+    return nil if cloud_plans.blank?
+
+    current_plan = cloud_plans.find { |plan| plan['name'] == plan_name }
+    current_plan&.dig('conversation_limit')
+  end
+
   def validate_limit_keys
     errors.add(:limits, ': Invalid data') unless self[:limits].is_a? Hash
     self[:limits] = {} if self[:limits].blank?
@@ -118,6 +141,7 @@ module Enterprise::Account::PlanUsageAndLimits
       'properties' => {
         'inboxes' => { 'type': 'number' },
         'agents' => { 'type': 'number' },
+        'conversations' => { 'type': 'number' },
         'captain_responses' => { 'type': 'number' },
         'captain_documents' => { 'type': 'number' }
       },
