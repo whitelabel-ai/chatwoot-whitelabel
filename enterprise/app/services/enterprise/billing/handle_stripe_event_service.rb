@@ -59,7 +59,7 @@ class Enterprise::Billing::HandleStripeEventService
         plan_name: plan['name'],
         subscribed_quantity: subscription['quantity'],
         subscription_status: subscription['status'],
-        subscription_ends_on: get_current_period_end(subscription)
+        subscription_ends_on: Time.zone.at(subscription['current_period_end'])
       }
     )
   end
@@ -150,23 +150,5 @@ class Enterprise::Billing::HandleStripeEventService
 
     # Enable each feature
     account.enable_features(*features) if features.present?
-  end
-
-  def get_current_period_end(subscription)
-    # Handle Stripe::Subscription objects
-    if subscription.is_a?(Stripe::Subscription)
-      # For Stripe objects, access current_period_end directly
-      period_end = subscription.current_period_end
-    else
-      # Handle hash structures (from event data)
-      # Try the new structure first (items.data[0].current_period_end)
-      period_end = subscription.dig('items', 'data', 0, 'current_period_end')
-
-      # Fallback to the original structure (subscription.current_period_end)
-      period_end ||= subscription['current_period_end']
-    end
-
-    # Convert to Time if present, otherwise return nil
-    period_end ? Time.zone.at(period_end) : nil
   end
 end
