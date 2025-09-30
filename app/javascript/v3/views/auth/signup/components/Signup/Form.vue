@@ -59,6 +59,10 @@ export default {
           required,
           email,
           businessEmailValidator(value) {
+            // Si allowPersonalEmailSignup está habilitado, no validar email empresarial
+            if (window.chatwootConfig?.allowPersonalEmailSignup === 'true') {
+              return true;
+            }
             return CompanyEmailValidator.isCompanyEmail(value);
           },
         },
