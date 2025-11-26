@@ -53,13 +53,9 @@ class Enterprise::Billing::HandleStripeEventService
 
   def update_account_attributes(subscription, plan)
     # https://stripe.com/docs/api/subscriptions/object
-    ends_on_value = subscription['current_period_end']
-    ends_on = if ends_on_value.present?
-                Time.zone.at(ends_on_value)
-              else
-                Rails.logger.warn { 'Stripe webhook: current_period_end is nil for subscription update' }
-                nil
-              end
+    end_ts = subscription['current_period_end'] ||
+             (subscription['items'] && subscription['items']['data'] &&
+              subscription['items']['data'][0] && subscription['items']['data'][0]['current_period_end'])
 
     account.update(
       custom_attributes: {
@@ -69,7 +65,7 @@ class Enterprise::Billing::HandleStripeEventService
         plan_name: plan['name'],
         subscribed_quantity: subscription['quantity'],
         subscription_status: subscription['status'],
-        subscription_ends_on: ends_on
+        subscription_ends_on: (end_ts ? Time.zone.at(end_ts) : nil)
       }
     )
   end
