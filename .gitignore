@@ -104,3 +104,5 @@ COMANDOS_CHATWOOT.md
 # Histoire deployment
 .netlify
 .histoire
+.pnpm-store/*
+local/
