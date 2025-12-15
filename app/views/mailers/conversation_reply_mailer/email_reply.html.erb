@@ -1,15 +1,32 @@
-<%# Render reply HTML (sanitizado) envuelto en el contenedor estilado. Si no existe reply, renderiza markdown con el mismo estilo. %>
+<%# Render reply HTML (sanitizado) envuelto en el contenedor estilado.
+    Si no existe reply, renderiza outgoing_content:
+    - Si parece HTML => sanitiza y muestra
+    - Si no => renderiza Markdown con el mismo estilo
+%>
 
-<%# Extraemos reply crudo si existe %>
+<% allowed_tags = %w[a b br p span div img strong em ul ol li table tr td th tbody thead tfoot h1 h2 h3 h4 h5 h6 blockquote pre code hr] %>
+<% allowed_attributes = %w[href src alt title width height cellpadding cellspacing border align class id style target rel] %>
+
+<%# 1) Reply HTML del email (si existe) %>
 <% if @message.content_attributes.dig('email', 'html_content', 'reply').present? %>
   <% raw_reply = @message.content_attributes.dig('email', 'html_content', 'reply') %>
+  <% sanitized_body = sanitize(raw_reply, tags: allowed_tags, attributes: allowed_attributes) %>
 
-  <%# Ajusta tags/attributes permitidos si necesitas conservar más/menos HTML %>
-  <% allowed_tags = %w[a b br p span div img strong em ul ol li table tr td th tbody thead tfoot h1 h2 h3 h4 h5 h6 blockquote pre code hr] %>
-  <% allowed_attributes = %w[href src alt title width height cellpadding cellspacing border align class id style target rel] %>
+<%# 2) Fallback: outgoing_content %>
+<% elsif @message.outgoing_content.present? %>
+  <% raw_out = @message.outgoing_content.to_s %>
 
-  <% sanitized_reply = sanitize(raw_reply, tags: allowed_tags, attributes: allowed_attributes) %>
+  <%# Heurística: si parece HTML, sanitizamos. Si no, renderizamos Markdown. %>
+  <% if raw_out.match?(/<\/?[a-z][\s\S]*>/i) %>
+    <% sanitized_body = sanitize(raw_out, tags: allowed_tags, attributes: allowed_attributes) %>
+  <% else %>
+    <% sanitized_body = ChatwootMarkdownRenderer.new(raw_out).render_message %>
+  <% end %>
+<% else %>
+  <% sanitized_body = nil %>
+<% end %>
 
+<% if sanitized_body.present? %>
   <tr>
     <td style="padding: 0; margin: 0;">
       <div style="margin-bottom: 20px; margin-top: 10px;">
@@ -23,10 +40,10 @@
           </span>
         </div>
 
-        <!-- Contenedor estilado que muestra el reply sanitizado -->
+        <!-- Contenedor estilado -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; line-height: 1.5;">
           <div style="color: #ffffff; font-size: 15px;">
-            <%= sanitized_reply.html_safe %>
+            <%= sanitized_body.html_safe %>
           </div>
 
           <% if @large_attachments.present? %>
@@ -34,47 +51,13 @@
               <p style="margin: 0 0 10px 0; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                 📎 Archivos adjuntos:
               </p>
+
               <% @large_attachments.each_with_index do |attachment, attachment_index| %>
                 <div style="<%= attachment_index > 0 ? 'margin-top: 8px;' : '' %>">
-                  <a href="<%= attachment.file_url %>" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: rgba(255,255,255,0.2); color: #ffffff; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,0.3);">
-                    📄 <%= attachment.file.filename.to_s %>
-                  </a>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </td>
-  </tr>
-
-<% elsif @message.content %>
-  <%# Si no hay reply HTML, renderizamos el markdown en el mismo contenedor bonito %>
-  <tr>
-    <td style="padding: 0; margin: 0;">
-      <div style="margin-bottom: 20px; margin-top: 10px;">
-        <div style="margin-bottom: 8px;">
-          <span style="display: inline-block; padding: 6px 12px; background-color: #667eea; color: #ffffff; border-radius: 15px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            🎧 <%= @message.sender&.available_name || @message.sender&.name || 'Agente' %>
-          </span>
-          <span style="color: #6c757d; font-size: 12px; margin-left: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            <%= @message.created_at.strftime('%d/%m/%Y %H:%M') %>
-          </span>
-        </div>
-
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5;">
-          <div style="color: #ffffff; font-size: 15px;">
-            <%= ChatwootMarkdownRenderer.new(@message.outgoing_content).render_message %>
-          </div>
-
-          <% if @large_attachments.present? %>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
-              <p style="margin: 0 0 10px 0; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                📎 Archivos adjuntos:
-              </p>
-              <% @large_attachments.each_with_index do |attachment, attachment_index| %>
-                <div style="<%= attachment_index > 0 ? 'margin-top: 8px;' : '' %>">
-                  <a href="<%= attachment.file_url %>" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: rgba(255,255,255,0.2); color: #ffffff; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,0.3);">
+                  <a href="<%= attachment.file_url %>"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="display: inline-block; background-color: rgba(255,255,255,0.2); color: #ffffff; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,0.3);">
                     📄 <%= attachment.file.filename.to_s %>
                   </a>
                 </div>
